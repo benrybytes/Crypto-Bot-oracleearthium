@@ -7,16 +7,18 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "build": "tsup src/index.ts --minify"
+    "build": "tsc && tsup src/bot.ts --minify"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@discordjs/discord.js": "github:discordjs/discord.js",
+    "body-parser": "^1.20.2",
     "discord.js": "^14.14.1",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
+    "mysql": "^2.18.1",
     "nodemon": "^3.0.2",
     "passport": "^0.7.0",
     "passport-discord": "^0.1.4"

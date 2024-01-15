@@ -42,11 +42,11 @@ client.once("ready", async () => {
   // Get the servers saved in the cache of the discord bot
   guilds = client.guilds;
   users.setServers(guilds);
-  usersForEachServer = await Promise.all(
+  /* usersForEachServer = await Promise.all(
     users
       .getServers()
       .map(async (server: Guild) => await users.fetchMembers(server)),
-  );
+  ); */
 
   await registerCommands({ guildId: "", commands: commandList });
 });

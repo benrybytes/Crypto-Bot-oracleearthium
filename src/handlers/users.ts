@@ -93,14 +93,6 @@ class Users {
   public getServers = () => {
     return this.servers;
   };
-  /* export {
-  fetchMembers,
-  findListWhereUserIsAdmin,
-  listServersIndexesUserIsAdmin,
-  fetchAdminById,
-  setServers,
-  servers,
-}; */
 }
 
 export default Users;
