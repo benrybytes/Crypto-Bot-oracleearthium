@@ -1,0 +1,52 @@
+.coin-container {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.list-header-container {
+  margin: 2.5%;
+}
+.select-button {
+  color: #fff;
+  background-color: #7289da;
+  padding: 2.5%;
+  padding-inline: 5%;
+  border: 0;
+  margin-left: 5%;
+  width: 50%;
+}
+
+.crypto-container {
+  background-color: #36393e;
+  flex-direction: row; /* Align children horizontally*/
+  height: 5%;
+  width: 20%;
+  align-items: center;
+  justify-content: center;
+  margin: 2%;
+  padding: 2.5%;
+  display: flex; /* Be aligned as small blocks with set size */
+}
+
+.content {
+  width: 50%;
+}
+
+#header-container {
+  margin: 5%;
+}
+
+.select-button:hover {
+  background-color: #5e71b5;
+}
+
+.remove-button {
+  color: #fff;
+  background-color: tomato;
+  padding: 2.5%;
+  padding-inline: 5%;
+  border: 0;
+  margin-left: 5%;
+  width: 50%;
+}

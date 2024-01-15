@@ -24,7 +24,7 @@ app.use(bodyParser.json());
 // Serve static files from the 'dist' directory
 app.use("/dist", express.static(rootDir));
 // Serve static files in the 'styles' directory
-app.set("styles", express.static(path.join(__dirname, "styles")));
+app.use("/styles", express.static(path.join(__dirname, "webpage/styles")));
 // HTTP Request
 app.get("/:id", (request: Request, response: Response) => {
   const uid = request.params.id;

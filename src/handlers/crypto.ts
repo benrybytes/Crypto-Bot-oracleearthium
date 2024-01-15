@@ -74,9 +74,6 @@ const sendUserTopCurrencies = async (interaction: CommandInteraction) => {
       })),
     );
 
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId("refreshButton").setLabel("Refresh"),
-  );
   return interaction.reply({
     embeds: [cryptoListEmbed],
     ephemeral: true,
