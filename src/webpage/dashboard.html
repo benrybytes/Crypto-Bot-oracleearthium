@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="stylesheet" type="text/css" href="output.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css"
+      integrity="sha512-KfkfwYDsLkIlwQp6LFnl8zNdLGxu9YAA1QvwINks4PhcElQSvqcyVLLD9aMhXd13uQjoXtEKNosOWaZqXgel0g=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+  </head>
+  <body>
+    <div
+      class="flex items-center justify-center h-screen bg-discord-gray text-white flex-col"
+    >
+      <div class="text-2xl">Welcome to the dashboard,</div>
+      <div class="text-4xl mt-3 flex items-center font-medium">
+        <img src="" id="avatar" class="rounded-full w-12 h-12 mr-3" />
+        <div id="name"></div>
+      </div>
+      <div id="servers-owned"></div>
+      <a href="/" class="text-sm mt-5">Logout</a>
+    </div>
+
+    <script>
+      // When window is loaded for the first time
+      window.onload = () => {
+        //  Finds # and gets the rest of url and returns params accessible
+        const fragment = new URLSearchParams(window.location.hash.slice(1)); // get discord url params concat with current windor with URL SEARCH PARAMS
+        const [accessToken, tokenType] = [
+          fragment.get("access_token"),
+          fragment.get("token_type"),
+        ];
+        console.log("access: " + accessToken + "\n" + "type: " + tokenType);
+
+        if (accessToken == null) {
+          window.location.href = "http://localhost:53134/";
+        }
+
+        // Keep fetching the discord data for consistent login
+
+        fetch("https://discord.com/api/users/@me", {
+          headers: {
+            authorization: `${tokenType} ${accessToken}`,
+          },
+        })
+          .then((result) => {
+            if (!result.ok) {
+              throw new Error(`HTTP error! Status: ${result.status}`);
+            }
+            return result.json();
+          })
+          .then((userData) => {
+            console.log(userData);
+
+            const serverList = fetch("http://localhost:53134/" + userData.id)
+              .then((result) => result.json())
+              .then((response) => createServerList(response.servers))
+
+              .catch((error) => console.error("Second fetch error:", error));
+
+            // Other code related to userData processing
+            const { username, discriminator, avatar, id } = userData;
+            document.getElementById("name").innerText =
+              ` ${username}#${discriminator}`;
+            document.getElementById("avatar").src =
+              `https://cdn.discordapp.com/avatars/${id}/${avatar}.jpg`;
+          })
+          .catch((error) => console.error("First fetch error:", error));
+      };
+
+      const createServerList = (serverAdminList) => {
+        let adminList = document.getElementById("servers-owned");
+
+        for (var i = 0; i < serverAdminList.length; i++) {
+          // for each Object in your Array
+          var myItem = document.createElement("div"); // create a item for the list
+          var myAnchor = document.createElement("h3"); // create an anchor for the target_dir property
+          // myAnchor.setAttribute("href", contentList[i].target_dir); // set the href attribute for the anchor
+
+          var myTitle = document.createTextNode(serverAdminList[i].name); // create the text node to be inside the anchor from the content_title property
+          myAnchor.appendChild(myTitle); // append the text into the anchor
+
+          var myImage = document.createElement("img"); // create the DOMElement for the image
+          myImage.setAttribute("src", serverAdminList[i].iconURL); // set the attribute src (from the img_src property)
+          myImage.setAttribute("alt", serverAdminList[i].icon); // set the alt attribute only cause it's required for both XHTML and HTML5
+
+          myItem.appendChild(myAnchor); // append the anchor into the item list
+          myItem.appendChild(myImage); // append the image into the item list
+
+          adminList.appendChild(myItem); // append the item list into the list
+        }
+      };
+    </script>
+  </body>
+</html>
