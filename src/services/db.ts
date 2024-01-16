@@ -31,6 +31,29 @@ async function createTable() {
   await query(createTableSQL, []);
 }
 
+async function createDiscordDataTable() {
+  const createTableSQL = `
+   
+
+CREATE TABLE IF NOT EXISTS bet_crypto (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  serverId VARCHAR(255),
+  day TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  users JSON,
+  usersBetting JSON,
+  INDEX (serverId)
+
+);  `;
+
+  try {
+    await query(createTableSQL, []);
+    console.log("Table created successfully");
+  } catch (error) {
+    console.error("Error creating table:", error);
+    throw error;
+  }
+}
+
 function getOffset(currentPage: any = 1, listPerPage: any) {
   return (currentPage - 1) * listPerPage;
 }
@@ -42,4 +65,11 @@ function emptyOrRows(rows: any) {
   return rows;
 }
 
-export { config, emptyOrRows, getOffset, query, createTable };
+export {
+  config,
+  emptyOrRows,
+  getOffset,
+  query,
+  createTable,
+  createDiscordDataTable,
+};

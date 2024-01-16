@@ -42,7 +42,6 @@
         }
 
         // Keep fetching the discord data for consistent login
-
         fetch("https://discord.com/api/users/@me", {
           headers: {
             authorization: `${tokenType} ${accessToken}`,
@@ -55,8 +54,6 @@
             return result.json();
           })
           .then((userData) => {
-            console.log(userData);
-
             const serverList = fetch("http://localhost:53134/" + userData.id)
               .then((result) => result.json())
               .then((response) => createServerList(response.servers, userData))
@@ -77,6 +74,12 @@
       const baseURL = "http://localhost:53134";
       const cryptoURL = baseURL + "/crypto";
 
+      /*
+        Be able to check first whether the sql table is built for data input | Contain a way to move the user if the table is finalized in the server 
+        Precondition: Having an event be made from the button with data from the server input and transfer that data 
+        Postcondition: After getting the correct data and configuring the database table, we could move to the next page about the card 
+
+      */
       const changeLocation = async (e, serverData, index, uid) => {
         e.preventDefault();
         const res = await fetch(cryptoURL + "/check-for-server-table", {

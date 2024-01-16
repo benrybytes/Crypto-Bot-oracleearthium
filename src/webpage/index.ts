@@ -7,8 +7,7 @@ import bodyParser from "body-parser";
 import { createTable } from "../services/db";
 const crypto = require("./routes/crypto");
 
-const rootDir = path.join(__dirname, "../../", "dist");
-console.log(rootDir);
+const rootDir = path.join(__dirname, "../../", "dist"); // Be able to read from the build folder when running the command tsc
 
 const app = express();
 let userHandlers: Users;

@@ -41,6 +41,71 @@ async function getSelectedCoins(serverId: string) {
   }
 }
 
+/* async function addServerUsers(serverId: string, amount: number){
+    try{
+      const usersBetting = result[0].usersBetting || [];
+      usersBetting.push({ uid, bettingAmount, symbol });
+
+      const updateUsersBettingSQL = `
+        UPDATE bet_crypto
+        SET usersBetting = ?
+        WHERE serverId = ?;
+      `;
+
+      const serverBetData = await query(updateUsersBettingSQL, [usersBetting, serverId]);
+
+    }catch(e){
+        console.error(e);
+    }
+} */
+
+async function addUserToBetting(
+  serverId: string,
+  uid: string,
+  bettingAmount: number,
+  symbol: string,
+) {
+  try {
+    const checkServerSQL = `
+      SELECT usersBetting
+      FROM bet_crypto
+      WHERE serverId = ?;
+    `;
+
+    // Check if the server exists
+    const [result] = await query(checkServerSQL, [serverId]);
+
+    if (result && result[0]) {
+      // Server exists, update the usersBetting array
+
+      const usersBetting = result[0].usersBetting || [];
+      usersBetting.push({ uid, bettingAmount, symbol });
+
+      const updateUsersBettingSQL = `
+        UPDATE bet_crypto
+        SET usersBetting = ?
+        WHERE serverId = ?;
+      `;
+
+      const serverBetData = await query(updateUsersBettingSQL, [
+        usersBetting,
+        serverId,
+      ]);
+
+      console.log(
+        `User with uid ${uid} added to betting for serverId ${serverId}`,
+      );
+      return serverBetData;
+    } else {
+      // Server does not exist
+      console.error(`Server with serverId ${serverId} does not exist.`);
+    }
+  } catch (error) {
+    console.error("Error adding user to betting:", error);
+    throw error;
+  }
+}
+
 // Inside cryptoMW
 
 async function checkAndAddServer(serverId: string) {
