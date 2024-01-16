@@ -4,6 +4,8 @@ import express from "express";
 import Users from "../handlers/users";
 import { Guild } from "discord.js";
 import bodyParser from "body-parser";
+import { createTable } from "../services/db";
+const crypto = require("./routes/crypto");
 
 const rootDir = path.join(__dirname, "../../", "dist");
 console.log(rootDir);
@@ -33,6 +35,8 @@ app.get("/:id", (request: Request, response: Response) => {
 
   response.status(200).send({ servers: serversWithUserAsAdmin });
 });
+
+app.use("/crypto", crypto);
 
 // PAGE NAVIGATIONS
 
@@ -76,7 +80,8 @@ app.listen(port, () =>
   console.log(`App listening at http://localhost:${port}`),
 );
 
-export default function createApp(userObject: Users) {
+export default async function createApp(userObject: Users) {
+  await createTable();
   userHandlers = userObject;
   return app;
 }

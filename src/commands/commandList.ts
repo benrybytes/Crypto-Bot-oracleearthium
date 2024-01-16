@@ -1,9 +1,6 @@
-import {
-  Interaction,
-  SlashCommandBuilder,
-  CommandInteraction,
-} from "discord.js";
+import { SlashCommandBuilder, CommandInteraction } from "discord.js";
 import sendUserTopCurrencies from "../handlers/crypto";
+import sendTrackedCryptoData from "../handlers/targetedCrypto";
 
 export interface ICommand {
   data: SlashCommandBuilder;
@@ -20,30 +17,14 @@ let commandList: ICommand[] = [
       sendUserTopCurrencies(interaction);
     },
   },
+  {
+    data: new SlashCommandBuilder()
+      .setName("get_targeted_crypto")
+      .setDescription("server specific tokens"),
+    async execute(interaction: CommandInteraction) {
+      sendTrackedCryptoData(interaction);
+    },
+  },
 ];
 
 export default commandList;
-
-function quickSort(array: number[]): number[] {
-  // base case
-  if (array.length <= 1) {
-    return array; // return the array value to concat
-  }
-
-  const pivot = array[0]; // Ignore this number on every recursion, we don't want the same number as we want to take out one number and split the arrays
-
-  // Split the arrays to two halves
-  const left = [];
-  const right = [];
-
-  for (let i = 1; i < array.length; i++) {
-    // Pivot as the main comparison
-    if (array[i] < pivot) {
-      left.push(array[i]);
-    } else {
-      right.push(array[i]);
-    }
-  }
-
-  return quickSort(left).concat(pivot, quickSort(right));
-}

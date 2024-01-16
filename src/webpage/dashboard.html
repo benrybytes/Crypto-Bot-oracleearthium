@@ -73,8 +73,24 @@
           .catch((error) => console.error("First fetch error:", error));
       };
 
-      const changeLocation = (e, serverData, index, uid) => {
+      // Client-Side JavaScript
+      const baseURL = "http://localhost:53134";
+      const cryptoURL = baseURL + "/crypto";
+
+      const changeLocation = async (e, serverData, index, uid) => {
         e.preventDefault();
+        const res = await fetch(cryptoURL + "/check-for-server-table", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            serverId: serverData.id,
+          }),
+        }).catch((e) => e);
+        if (res.status !== 200) {
+          return;
+        }
         location.href =
           "/card-page/" + serverData.id + "?index=" + index + "&uid=" + uid;
       };
@@ -106,8 +122,9 @@
           myImage.setAttribute("src", serverAdminList[i].iconURL); // set the attribute src (from the img_src property)
           myImage.setAttribute("alt", serverAdminList[i].icon); // set the alt attribute only cause it's required for both XHTML and HTML5
 
-          myItem.appendChild(myAnchor); // append the anchor into the item list
           myItem.appendChild(myImage); // append the image into the item list
+
+          myItem.appendChild(myAnchor); // append the anchor into the item list
 
           adminList.appendChild(myItem); // append the item list into the list
         }

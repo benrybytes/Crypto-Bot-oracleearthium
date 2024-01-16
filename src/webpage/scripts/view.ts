@@ -16,7 +16,12 @@ window.onload = async () => {
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
-      const data = await response.json();
+
+      const text = await response.text(); // Get the raw text of the response
+
+      console.log("Response text:", text); // Log the response text
+
+      const data = JSON.parse(text); // Try to parse JSON from the response text
       return [Promise.resolve(data), null];
     } catch (error: any) {
       console.error("Error making fetch request:", error);
@@ -96,9 +101,42 @@ window.onload = async () => {
       }
     };
 
-    let coinsChosenList: CryptoCurrency[] = [];
+    interface IGetCryptoResponse {
+      serverId: string;
+      coinData: CryptoCurrency[];
+    }
 
-    const moveToChoose = (
+    // Client-Side JavaScript
+    const baseURL: string = "http://localhost:53134";
+    const cryptoURL: string = baseURL + "/crypto";
+
+    const [getCoinsResponse, errorGettingCoins] = await fetchfromclient<
+      IGetCryptoResponse[]
+    >(cryptoURL + "/get-crypto?serverId=" + server_data.id);
+
+    if (errorGettingCoins) {
+      console.error(errorGettingCoins);
+      return;
+    }
+
+    let coinData: IGetCryptoResponse = await getCoinsResponse!.then(
+      (res: IGetCryptoResponse[]) => res[0],
+    );
+    console.log("con data: ", coinData);
+    let coinsChosenList: CryptoCurrency[] =
+      coinData.coinData.length != 0 ? coinData.coinData : [];
+    console.log("Coins: ", coinsChosenList);
+    let filteredCoins = top_coins;
+    // Filter out the coins that were selected to the coins selection list
+    // Assuming top_coins is an array of CryptoCurrency objects
+    if (coinsChosenList.length !== 0) {
+      const coinsChosenSet = new Set(coinsChosenList.map((coin) => coin.id));
+      filteredCoins = top_coins.filter(
+        (topCoin) => !coinsChosenSet.has(topCoin.id),
+      );
+    }
+
+    const moveToChoose = async (
       e: any,
       location: number,
       element: HTMLDivElement,
@@ -114,24 +152,83 @@ window.onload = async () => {
         buttonFromElement.className = "remove-button";
         buttonFromElement.innerText = "remove";
         coinsChosenList.push(coin);
-
         coinChosen.appendChild(element);
+
+        try {
+          await fetch(cryptoURL + "/update-coin-list", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              serverId: server_data.id,
+              selectedCoins: coinsChosenList,
+            }),
+          });
+        } catch (error) {
+          console.error("Error updating coin list:", error);
+        }
       } else {
         insertChildAtIndex(coinList, element, location);
         buttonFromElement.className = "select-button";
 
         coinsChosenList = coinsChosenList.filter(
-          (coinElement: CryptoCurrency) => coinElement.id !== coin.id, // Keep coins that do not have the coin id we want to remove
+          (coinElement: CryptoCurrency) => coinElement.id !== coin.id,
         );
+
+        try {
+          await fetch(cryptoURL + "/update-coin-list", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              serverId: server_data.id,
+              selectedCoins: coinsChosenList,
+            }),
+          });
+        } catch (error) {
+          console.error("Error updating coin list:", error);
+        }
+
         console.log(coinsChosenList.length);
       }
     };
 
     // Initialize crypto currency lists ready to be used
-    for (let i = 0; i < top_coins.length; i++) {
+    for (let i = 0; i < coinsChosenList.length; i++) {
       const { createButton, createContainer, createText, textContainer } =
         createLabelCoin();
-      createText.innerText = top_coins[i].name;
+      createText.innerText = coinsChosenList[i].name;
+      createButton.innerText = "remove";
+      textContainer.className = "content";
+
+      createButton.className = "remove-button";
+      createContainer.className = "crypto-container";
+      coinChosen.appendChild(createContainer);
+
+      createButton.addEventListener(
+        "click",
+        (function (currentToggle) {
+          return function (e: any) {
+            moveToChoose(
+              e,
+              i,
+              createContainer,
+              coinsChosenList[i],
+              currentToggle,
+            );
+            currentToggle = !currentToggle;
+          };
+        })(false),
+      );
+    }
+
+    // Initialize crypto currency lists ready to be used
+    for (let i = 0; i < filteredCoins.length; i++) {
+      const { createButton, createContainer, createText, textContainer } =
+        createLabelCoin();
+      createText.innerText = filteredCoins[i].name;
       createButton.innerText = "select";
       textContainer.className = "content";
 
@@ -139,14 +236,22 @@ window.onload = async () => {
       createContainer.className = "crypto-container";
       coinList.appendChild(createContainer);
 
-      let toggle = true;
-
-      createButton.addEventListener("click", (e: any) => {
-        moveToChoose(e, i, createContainer, top_coins[i], toggle);
-        toggle = !toggle;
-      });
+      createButton.addEventListener(
+        "click",
+        (function (currentToggle) {
+          return function (e: any) {
+            moveToChoose(
+              e,
+              i,
+              createContainer,
+              filteredCoins[i],
+              currentToggle,
+            );
+            currentToggle = !currentToggle;
+          };
+        })(true),
+      );
     }
-
     // Further processing...
   } catch (e) {
     console.error("Error:", e);
