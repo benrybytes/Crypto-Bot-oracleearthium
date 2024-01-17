@@ -2,6 +2,7 @@ import { SlashCommandBuilder, CommandInteraction } from "discord.js";
 import sendUserTopCurrencies from "../handlers/crypto";
 import sendTrackedCryptoData from "../handlers/targetedCrypto";
 import sendBetData from "../handlers/bet";
+import displayLeaderboard from "../handlers/leaderboard";
 
 export interface ICommand {
   data: Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">;
@@ -10,6 +11,14 @@ export interface ICommand {
 
 // List of commands registered with handlers and data containined to show on discord
 let commandList: ICommand[] = [
+  {
+    data: new SlashCommandBuilder()
+      .setName("get_leaderboard")
+      .setDescription("Display top 10 highest points"),
+    async execute(interaction: CommandInteraction) {
+      displayLeaderboard(interaction);
+    },
+  },
   {
     data: new SlashCommandBuilder()
       .setName("get_current_prices")
@@ -40,6 +49,12 @@ let commandList: ICommand[] = [
         option
           .setName("bet_amount")
           .setDescription("The price to bet on tracked list")
+          .setRequired(true),
+      )
+      .addBooleanOption((option) =>
+        option
+          .setName("increase_or_decrease")
+          .setDescription("true or false for response")
           .setRequired(true),
       ),
     async execute(interaction: CommandInteraction) {

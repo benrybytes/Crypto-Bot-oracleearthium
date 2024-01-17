@@ -1,5 +1,4 @@
 import { CryptoCurrency } from "../interfaces/cryptoresponse.interface.";
-
 const { query } = require("./db");
 
 // Insert new server with selected coins into the database
@@ -41,74 +40,7 @@ async function getSelectedCoins(serverId: string) {
   }
 }
 
-/* async function addServerUsers(serverId: string, amount: number){
-    try{
-      const usersBetting = result[0].usersBetting || [];
-      usersBetting.push({ uid, bettingAmount, symbol });
-
-      const updateUsersBettingSQL = `
-        UPDATE bet_crypto
-        SET usersBetting = ?
-        WHERE serverId = ?;
-      `;
-
-      const serverBetData = await query(updateUsersBettingSQL, [usersBetting, serverId]);
-
-    }catch(e){
-        console.error(e);
-    }
-} */
-
-async function addUserToBetting(
-  serverId: string,
-  uid: string,
-  bettingAmount: number,
-  symbol: string,
-) {
-  try {
-    const checkServerSQL = `
-      SELECT usersBetting
-      FROM bet_crypto
-      WHERE serverId = ?;
-    `;
-
-    // Check if the server exists
-    const [result] = await query(checkServerSQL, [serverId]);
-
-    if (result && result[0]) {
-      // Server exists, update the usersBetting array
-
-      const usersBetting = result[0].usersBetting || [];
-      usersBetting.push({ uid, bettingAmount, symbol });
-
-      const updateUsersBettingSQL = `
-        UPDATE bet_crypto
-        SET usersBetting = ?
-        WHERE serverId = ?;
-      `;
-
-      const serverBetData = await query(updateUsersBettingSQL, [
-        usersBetting,
-        serverId,
-      ]);
-
-      console.log(
-        `User with uid ${uid} added to betting for serverId ${serverId}`,
-      );
-      return serverBetData;
-    } else {
-      // Server does not exist
-      console.error(`Server with serverId ${serverId} does not exist.`);
-    }
-  } catch (error) {
-    console.error("Error adding user to betting:", error);
-    throw error;
-  }
-}
-
-// Inside cryptoMW
-
-async function checkAndAddServer(serverId: string) {
+async function checkAndAddDiscordServer(serverId: string) {
   const checkServerSQL = `
     SELECT COUNT(*) as count
     FROM tracked_crypto
@@ -121,7 +53,7 @@ async function checkAndAddServer(serverId: string) {
 
     if (result.count !== undefined && result.count === 0) {
       // Server not present, add it
-      await insertServer(serverId);
+      await insertDiscordServer(serverId);
       console.log(`Server with serverId ${serverId} added.`);
     } else if (
       Array.isArray(result) &&
@@ -139,7 +71,7 @@ async function checkAndAddServer(serverId: string) {
 }
 
 // Insert server into the table
-async function insertServer(serverId: string) {
+async function insertDiscordServer(serverId: string) {
   const insertServerSQL = `
     INSERT INTO tracked_crypto (serverId, coinData)
     VALUES (?, ?);
@@ -195,7 +127,7 @@ async function deleteSelectedCoins(serverId: string, coinId: string) {
 }
 
 module.exports = {
-  checkAndAddServer,
+  checkAndAddDiscordServer,
   insertSelectedCoins,
   getSelectedCoins,
   updateSelectedCoins,

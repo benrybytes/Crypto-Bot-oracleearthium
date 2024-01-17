@@ -20,7 +20,7 @@ const sendTrackedCryptoData = async (interaction: CommandInteraction) => {
   try {
     const serverId = interaction.guildId; // Assuming serverId is the guild ID
     console.log("serverId: ", serverId);
-    // console.log("interaction; ", interaction);
+
     const [response, error] = await makeFetchRequest<ICryptoResponse[]>(
       url + "/get-crypto?serverId=" + serverId,
     );

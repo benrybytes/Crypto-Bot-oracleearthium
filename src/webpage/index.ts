@@ -6,6 +6,7 @@ import { Guild } from "discord.js";
 import bodyParser from "body-parser";
 import { createTable } from "../services/db";
 const crypto = require("./routes/crypto");
+import discord_server_routes from "./routes/commands";
 
 const rootDir = path.join(__dirname, "../../", "dist"); // Be able to read from the build folder when running the command tsc
 
@@ -16,11 +17,6 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 // Use middleware to parse application/json
 app.use(bodyParser.json());
-
-// Serve static files from the dist directory
-
-// Serve static files in the 'dist' directory
-//app.set("dist", express.static(path.join(__dirname, "dist")));
 
 // Serve static files from the 'dist' directory
 app.use("/dist", express.static(rootDir));
@@ -36,8 +32,7 @@ app.get("/:id", (request: Request, response: Response) => {
 });
 
 app.use("/crypto", crypto);
-
-// PAGE NAVIGATIONS
+app.use("/discord-server", discord_server_routes);
 
 app.get("/card-data", (req: Request, res: Response) => {
   const uid: string | undefined = req.query.uid as string | undefined;
@@ -52,14 +47,16 @@ app.get("/card-data", (req: Request, res: Response) => {
         server_data: serversWithUserAsAdmin[index],
       });
     } else {
+      console.log("error here");
       res.status(400).send({ error: "Invalid index" });
     }
   } else {
+    console.log("error there");
     res.status(400).send({ error: "Invalid query parameters" });
   }
 });
 
-app.get("/card-page/:id", (req: Request, res: Response) => {
+app.get("/card-page/:id", (_req: Request, res: Response) => {
   res.status(200).sendFile("./src/webpage/view/view.html", { root: "." });
 });
 

@@ -1,12 +1,7 @@
-import {
-  APIMessageActionRowComponent,
-  ActionRowBuilder,
-  ButtonBuilder,
-  CommandInteraction,
-  EmbedBuilder,
-} from "discord.js";
+import { CommandInteraction, EmbedBuilder } from "discord.js";
 import makeFetchRequest from "../helpers/fetchHandler";
-import quickSort, { IPriceList } from "../helpers/quickSort";
+import quickSort from "../helpers/quickSort";
+import { IPriceList } from "../interfaces/price_list.interface";
 
 interface ICryptoData {
   id: string;
@@ -59,7 +54,9 @@ const sendUserTopCurrencies = async (interaction: CommandInteraction) => {
       return { key: index, value: crypto.priceUsd };
     },
   );
-  const sortedCryptoData = quickSort(prices).reverse().slice(0, 10);
+  const sortedCryptoData = quickSort<IPriceList>(prices, "value")
+    .reverse()
+    .slice(0, 10);
   const cryptoListEmbed = new EmbedBuilder()
     .setTitle("Crypto Currencies Tracked: ")
 
