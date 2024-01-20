@@ -99,6 +99,124 @@ client.once("ready", async () => {
     handleUsersNewInput(server.id, server);
   });
   await registerCommands({ guildId: "", commands: commandList });
+
+  let lastExecutionTime: Date;
+
+  let timer = setInterval(function () {
+    const now = new Date();
+
+    // Check if 24 hours have passed since the last execution
+
+    if (
+      !lastExecutionTime ||
+      now.getTime() - lastExecutionTime.getTime() >= 0.1 * 1000
+    ) {
+      lastExecutionTime = now;
+
+      // Your logic to send the GuildMessages
+
+      resetLeaderboardAndGivePoints();
+    }
+  }, 50 * 1000); // Check every minute
+  interface IQueryTable {
+    usersBetting: IUserBetting[];
+  }
+
+  interface bootlegC {
+    id: number;
+    serverId: string;
+    symbol: string;
+    priceUsd: string;
+  }
+  const resetLeaderboardAndGivePoints = async () => {
+    async function processUserBetting(userBet: IUserBetting, serverId: string) {
+      const { uid, symbol, bet_amount, cryptoIncrease, current_price } =
+        userBet;
+
+      // Check if the price has increased based on the symbol
+      const checkPriceIncreaseSQL = `
+      
+SELECT id, serverId, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].symbol')) AS symbol, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].priceUsd')) AS priceUsd
+    FROM tracked_crypto
+    WHERE JSON_CONTAINS(coinData, JSON_OBJECT('symbol', JSON_UNQUOTE(?)), '$')
+    LIMIT 1;
+
+`;
+
+      const parsedResult: bootlegC = emptyOrRows(
+        await query(checkPriceIncreaseSQL, [symbol]),
+      )[0];
+
+      const getUsersSQL = `
+  SELECT users 
+  FROM bet_crypto 
+  WHERE serverId = ?;
+`;
+
+      const userQuery = await emptyOrRows(await query(getUsersSQL, [serverId]));
+      const usersArray = userQuery[0].users;
+
+      // Find the user in the array and update points
+      const userIndex = usersArray.findIndex((user: IUser) => user.uid === uid);
+      if (userIndex !== -1) {
+        if (
+          parseFloat(parsedResult.priceUsd) > current_price &&
+          cryptoIncrease
+        ) {
+          usersArray[userIndex].points += bet_amount * 2;
+        } else {
+          usersArray[userIndex].points -= bet_amount;
+        }
+      }
+
+      // Convert the array back to a JSON string
+      const updatedUsersJSON = usersArray;
+
+      // Update the users column in the database
+      const updatePointsSQL = `
+  UPDATE bet_crypto
+  SET users = ?
+  WHERE serverId = ?`;
+
+      // Execute the query with the necessary parameters
+      await query(updatePointsSQL, [updatedUsersJSON, serverId]);
+    }
+    async function getAllUserBetting(serverId: string) {
+      const getAllUserBettingSQL = `
+      SELECT usersBetting
+      FROM bet_crypto
+      WHERE serverId = ?;
+    `;
+      const result = await query(getAllUserBettingSQL, [serverId]);
+      const row = emptyOrRows(result);
+
+      if (row) {
+        const userBettingArray: IUserBetting[] = row[0].usersBetting;
+
+        if (userBettingArray && userBettingArray.length > 0) {
+          for (const userBet of userBettingArray) {
+            // Assuming userBet has the necessary properties
+
+            await processUserBetting(userBet, serverId);
+          }
+        } else {
+          console.log(`No userBetting found for serverId ${serverId}.`);
+        }
+      } else {
+        console.log(`No data found for serverId ${serverId}.`);
+      }
+    }
+
+    users.getServers().map((server: Guild) => getAllUserBetting(server.id));
+
+    // Reset all users that are betting after calculating which one's got it correct
+    const resetUsersBettingSQL = `
+    UPDATE bet_crypto
+    SET usersBetting = '[]';
+  `;
+
+    await query(resetUsersBettingSQL, []);
+  };
 });
 
 // ... (other imports)
@@ -188,117 +306,3 @@ client.on("interactionCreate", async (interaction: Interaction) => {
 
 console.log("Bot registration process...");
 client.login(token);
-
-let lastExecutionTime: Date;
-
-let timer = setInterval(function () {
-  const now = new Date();
-
-  // Check if 24 hours have passed since the last execution
-
-  if (
-    !lastExecutionTime ||
-    now.getTime() - lastExecutionTime.getTime() >= 0.1 * 1000
-  ) {
-    lastExecutionTime = now;
-
-    // Your logic to send the GuildMessages
-
-    resetLeaderboardAndGivePoints();
-  }
-}, 50 * 1000); // Check every minute
-interface IQueryTable {
-  usersBetting: IUserBetting[];
-}
-
-interface bootlegC {
-  id: number;
-  serverId: string;
-  symbol: string;
-  priceUsd: string;
-}
-const resetLeaderboardAndGivePoints = async () => {
-  async function processUserBetting(userBet: IUserBetting, serverId: string) {
-    const { uid, symbol, bet_amount, cryptoIncrease, current_price } = userBet;
-
-    // Check if the price has increased based on the symbol
-    const checkPriceIncreaseSQL = `
-      
-SELECT id, serverId, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].symbol')) AS symbol, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].priceUsd')) AS priceUsd
-    FROM tracked_crypto
-    WHERE JSON_CONTAINS(coinData, JSON_OBJECT('symbol', JSON_UNQUOTE(?)), '$')
-    LIMIT 1;
-
-`;
-
-    const parsedResult: bootlegC = emptyOrRows(
-      await query(checkPriceIncreaseSQL, [symbol]),
-    )[0];
-
-    const getUsersSQL = `
-  SELECT users 
-  FROM bet_crypto 
-  WHERE serverId = ?;
-`;
-
-    const userQuery = await emptyOrRows(await query(getUsersSQL, [serverId]));
-    const usersArray = userQuery[0].users;
-
-    // Find the user in the array and update points
-    const userIndex = usersArray.findIndex((user: IUser) => user.uid === uid);
-    if (userIndex !== -1) {
-      if (parseFloat(parsedResult.priceUsd) > current_price && cryptoIncrease) {
-        usersArray[userIndex].points += bet_amount * 2;
-      } else {
-        usersArray[userIndex].points -= bet_amount;
-      }
-    }
-
-    // Convert the array back to a JSON string
-    const updatedUsersJSON = usersArray;
-
-    // Update the users column in the database
-    const updatePointsSQL = `
-  UPDATE bet_crypto
-  SET users = ?
-  WHERE serverId = ?`;
-
-    // Execute the query with the necessary parameters
-    await query(updatePointsSQL, [updatedUsersJSON, serverId]);
-  }
-  async function getAllUserBetting(serverId: string) {
-    const getAllUserBettingSQL = `
-      SELECT usersBetting
-      FROM bet_crypto
-      WHERE serverId = ?;
-    `;
-    const result = await query(getAllUserBettingSQL, [serverId]);
-    const row = emptyOrRows(result);
-
-    if (row) {
-      const userBettingArray: IUserBetting[] = row[0].usersBetting;
-
-      if (userBettingArray && userBettingArray.length > 0) {
-        for (const userBet of userBettingArray) {
-          // Assuming userBet has the necessary properties
-
-          await processUserBetting(userBet, serverId);
-        }
-      } else {
-        console.log(`No userBetting found for serverId ${serverId}.`);
-      }
-    } else {
-      console.log(`No data found for serverId ${serverId}.`);
-    }
-  }
-
-  users.getServers().map((server: Guild) => getAllUserBetting(server.id));
-
-  // Reset all users that are betting after calculating which one's got it correct
-  const resetUsersBettingSQL = `
-    UPDATE bet_crypto
-    SET usersBetting = '[]';
-  `;
-
-  await query(resetUsersBettingSQL, []);
-};
