@@ -33,10 +33,10 @@ let guilds: GuildManager;
 let usersForEachServer: User[][]; // Members of different servers in their respective servers made of users
 
 const users = new Users();
+createApp(users);
 
 // When bot is ready, make global commands |
 client.once("ready", async () => {
-  createApp(users);
   await createDiscordDataTable();
   await createDiscordDataTable();
   console.log("Discord bot is ready! 🤖");
@@ -101,7 +101,7 @@ client.once("ready", async () => {
   await registerCommands({ guildId: "", commands: commandList });
 
   let lastExecutionTime: Date;
-
+  /* 
   let timer = setInterval(function () {
     const now = new Date();
 
@@ -216,7 +216,7 @@ SELECT id, serverId, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].symbol')) AS symb
   `;
 
     await query(resetUsersBettingSQL, []);
-  };
+  }; */
 });
 
 // ... (other imports)
