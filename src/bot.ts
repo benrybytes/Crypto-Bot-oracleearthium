@@ -27,13 +27,100 @@ const client: Client = new Client({
     GatewayIntentBits.GuildMembers,
   ],
 });
+const users = new Users();
 
 // Servers bot has access to
 let guilds: GuildManager;
 let usersForEachServer: User[][]; // Members of different servers in their respective servers made of users
 
-const users = new Users();
-createApp(users);
+import { Response, Request } from "express";
+import path from "path";
+import express from "express";
+
+import bodyParser from "body-parser";
+import { createTable } from "./services/db";
+const crypto = require("./webpage/routes/crypto");
+import discord_server_routes from "./webpage/routes/commands";
+const rootDir = path.join(__dirname, "../../", "dist"); // Be able to read from the build folder when running the command tsc
+
+const app = express();
+let userHandlers: Users;
+// Use middleware to parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: false }));
+
+// Use middleware to parse application/json
+app.use(bodyParser.json());
+
+// Serve static files from the 'dist' directory
+app.use("/dist", express.static(rootDir));
+// Serve static files in the 'styles' directory
+app.use("/styles", express.static(path.join(__dirname, "webpage/styles")));
+// HTTP Request
+app.get("/:id", (request: Request, response: Response) => {
+  const uid = request.params.id;
+  const serversWithUserAsAdmin: Guild[] =
+    userHandlers.findUserWhereIsAdminById(uid);
+
+  response.status(200).send({ servers: serversWithUserAsAdmin });
+});
+// If discord bot goes down
+app.get("/uptime", (req, res) => {
+  res.status(200).send("Uptime Robot ping received.");
+});
+
+app.use("/crypto", crypto);
+app.use("/discord-server", discord_server_routes);
+
+app.get("/card-data", (req: Request, res: Response) => {
+  const uid: string | undefined = req.query.uid as string | undefined;
+  const index: number | undefined = parseInt(req.query.index as string);
+
+  if (uid !== undefined && !isNaN(index)) {
+    const serversWithUserAsAdmin: Guild[] =
+      userHandlers.findUserWhereIsAdminById(uid);
+
+    if (index >= 0 && index < serversWithUserAsAdmin.length) {
+      res.json({
+        server_data: serversWithUserAsAdmin[index],
+      });
+    } else {
+      console.log("error here");
+      res.status(400).send({ error: "Invalid index" });
+    }
+  } else {
+    console.log("error there");
+    res.status(400).send({ error: "Invalid query parameters" });
+  }
+});
+
+app.get("/card-page/:id", (_req: Request, res: Response) => {
+  res.status(200).sendFile("./src/webpage/view/view.html", { root: "." });
+});
+
+// Using CSS styles folder with static files
+app.use("/styles", express.static(path.join(__dirname, "styles")));
+
+app.get("/", (_request: Request, response: Response) => {
+  return response.sendFile("./src/webpage/main.html", { root: "." });
+});
+
+// Gets called by the discord redirect to get the dashboard
+app.get("/auth/discord", (_request: Request, response: Response) => {
+  return response.sendFile(
+    process.env.DEV == "d"
+      ? "./src/webpage/dashboard.html"
+      : "webpage/dashbord.html",
+    { root: "." },
+  );
+});
+const port = "53134";
+app.listen(port, () =>
+  console.log(`App listening at http://localhost:${port}`),
+);
+
+createTable();
+userHandlers = users;
+console.log("HELLO WORLD");
 
 // When bot is ready, make global commands |
 client.once("ready", async () => {
@@ -99,124 +186,6 @@ client.once("ready", async () => {
     handleUsersNewInput(server.id, server);
   });
   await registerCommands({ guildId: "", commands: commandList });
-
-  let lastExecutionTime: Date;
-  /* 
-  let timer = setInterval(function () {
-    const now = new Date();
-
-    // Check if 24 hours have passed since the last execution
-
-    if (
-      !lastExecutionTime ||
-      now.getTime() - lastExecutionTime.getTime() >= 0.1 * 1000
-    ) {
-      lastExecutionTime = now;
-
-      // Your logic to send the GuildMessages
-
-      resetLeaderboardAndGivePoints();
-    }
-  }, 50 * 1000); // Check every minute
-  interface IQueryTable {
-    usersBetting: IUserBetting[];
-  }
-
-  interface bootlegC {
-    id: number;
-    serverId: string;
-    symbol: string;
-    priceUsd: string;
-  }
-  const resetLeaderboardAndGivePoints = async () => {
-    async function processUserBetting(userBet: IUserBetting, serverId: string) {
-      const { uid, symbol, bet_amount, cryptoIncrease, current_price } =
-        userBet;
-
-      // Check if the price has increased based on the symbol
-      const checkPriceIncreaseSQL = `
-      
-SELECT id, serverId, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].symbol')) AS symbol, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].priceUsd')) AS priceUsd
-    FROM tracked_crypto
-    WHERE JSON_CONTAINS(coinData, JSON_OBJECT('symbol', JSON_UNQUOTE(?)), '$')
-    LIMIT 1;
-
-`;
-
-      const parsedResult: bootlegC = emptyOrRows(
-        await query(checkPriceIncreaseSQL, [symbol]),
-      )[0];
-
-      const getUsersSQL = `
-  SELECT users 
-  FROM bet_crypto 
-  WHERE serverId = ?;
-`;
-
-      const userQuery = await emptyOrRows(await query(getUsersSQL, [serverId]));
-      const usersArray = userQuery[0].users;
-
-      // Find the user in the array and update points
-      const userIndex = usersArray.findIndex((user: IUser) => user.uid === uid);
-      if (userIndex !== -1) {
-        if (
-          parseFloat(parsedResult.priceUsd) > current_price &&
-          cryptoIncrease
-        ) {
-          usersArray[userIndex].points += bet_amount * 2;
-        } else {
-          usersArray[userIndex].points -= bet_amount;
-        }
-      }
-
-      // Convert the array back to a JSON string
-      const updatedUsersJSON = usersArray;
-
-      // Update the users column in the database
-      const updatePointsSQL = `
-  UPDATE bet_crypto
-  SET users = ?
-  WHERE serverId = ?`;
-
-      // Execute the query with the necessary parameters
-      await query(updatePointsSQL, [updatedUsersJSON, serverId]);
-    }
-    async function getAllUserBetting(serverId: string) {
-      const getAllUserBettingSQL = `
-      SELECT usersBetting
-      FROM bet_crypto
-      WHERE serverId = ?;
-    `;
-      const result = await query(getAllUserBettingSQL, [serverId]);
-      const row = emptyOrRows(result);
-
-      if (row) {
-        const userBettingArray: IUserBetting[] = row[0].usersBetting;
-
-        if (userBettingArray && userBettingArray.length > 0) {
-          for (const userBet of userBettingArray) {
-            // Assuming userBet has the necessary properties
-
-            await processUserBetting(userBet, serverId);
-          }
-        } else {
-          console.log(`No userBetting found for serverId ${serverId}.`);
-        }
-      } else {
-        console.log(`No data found for serverId ${serverId}.`);
-      }
-    }
-
-    users.getServers().map((server: Guild) => getAllUserBetting(server.id));
-
-    // Reset all users that are betting after calculating which one's got it correct
-    const resetUsersBettingSQL = `
-    UPDATE bet_crypto
-    SET usersBetting = '[]';
-  `;
-
-    await query(resetUsersBettingSQL, []);
-  }; */
 });
 
 // ... (other imports)
@@ -306,3 +275,117 @@ client.on("interactionCreate", async (interaction: Interaction) => {
 
 console.log("Bot registration process...");
 client.login(token);
+
+let lastExecutionTime: Date;
+
+let timer = setInterval(function () {
+  const now = new Date();
+
+  // Check if 24 hours have passed since the last execution
+
+  if (
+    !lastExecutionTime ||
+    now.getTime() - lastExecutionTime.getTime() >= 0.1 * 1000
+  ) {
+    lastExecutionTime = now;
+
+    // Your logic to send the GuildMessages
+
+    resetLeaderboardAndGivePoints();
+  }
+}, 50 * 1000); // Check every minute
+interface IQueryTable {
+  usersBetting: IUserBetting[];
+}
+
+interface bootlegC {
+  id: number;
+  serverId: string;
+  symbol: string;
+  priceUsd: string;
+}
+const resetLeaderboardAndGivePoints = async () => {
+  async function processUserBetting(userBet: IUserBetting, serverId: string) {
+    const { uid, symbol, bet_amount, cryptoIncrease, current_price } = userBet;
+
+    // Check if the price has increased based on the symbol
+    const checkPriceIncreaseSQL = `
+      
+SELECT id, serverId, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].symbol')) AS symbol, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].priceUsd')) AS priceUsd
+    FROM tracked_crypto
+    WHERE JSON_CONTAINS(coinData, JSON_OBJECT('symbol', JSON_UNQUOTE(?)), '$')
+    LIMIT 1;
+
+`;
+
+    const parsedResult: bootlegC = emptyOrRows(
+      await query(checkPriceIncreaseSQL, [symbol]),
+    )[0];
+
+    const getUsersSQL = `
+  SELECT users 
+  FROM bet_crypto 
+  WHERE serverId = ?;
+`;
+
+    const userQuery = await emptyOrRows(await query(getUsersSQL, [serverId]));
+    const usersArray = userQuery[0].users;
+
+    // Find the user in the array and update points
+    const userIndex = usersArray.findIndex((user: IUser) => user.uid === uid);
+    if (userIndex !== -1) {
+      if (parseFloat(parsedResult.priceUsd) > current_price && cryptoIncrease) {
+        usersArray[userIndex].points += bet_amount * 2;
+      } else {
+        usersArray[userIndex].points -= bet_amount;
+      }
+    }
+
+    // Convert the array back to a JSON string
+    const updatedUsersJSON = usersArray;
+
+    // Update the users column in the database
+    const updatePointsSQL = `
+  UPDATE bet_crypto
+  SET users = ?
+  WHERE serverId = ?`;
+
+    // Execute the query with the necessary parameters
+    await query(updatePointsSQL, [updatedUsersJSON, serverId]);
+  }
+  async function getAllUserBetting(serverId: string) {
+    const getAllUserBettingSQL = `
+      SELECT usersBetting
+      FROM bet_crypto
+      WHERE serverId = ?;
+    `;
+    const result = await query(getAllUserBettingSQL, [serverId]);
+    const row = emptyOrRows(result);
+
+    if (row) {
+      const userBettingArray: IUserBetting[] = row[0].usersBetting;
+
+      if (userBettingArray && userBettingArray.length > 0) {
+        for (const userBet of userBettingArray) {
+          // Assuming userBet has the necessary properties
+
+          await processUserBetting(userBet, serverId);
+        }
+      } else {
+        console.log(`No userBetting found for serverId ${serverId}.`);
+      }
+    } else {
+      console.log(`No data found for serverId ${serverId}.`);
+    }
+  }
+
+  users.getServers().map((server: Guild) => getAllUserBetting(server.id));
+
+  // Reset all users that are betting after calculating which one's got it correct
+  const resetUsersBettingSQL = `
+    UPDATE bet_crypto
+    SET usersBetting = '[]';
+  `;
+
+  await query(resetUsersBettingSQL, []);
+};
