@@ -1,5 +1,7 @@
 const baseUrl =
-  process.env.DEPLOY_STATUS === "production" ? "" : "http://localhost:53134";
+  process.env.DEV != "d"
+    ? "https://crypto-discord-bot.onrender.com"
+    : "http://localhost:53134";
 
 const discord_express_url = baseUrl + "/discord-server";
 const crypto_express_url = baseUrl + "/crypto";

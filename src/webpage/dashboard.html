@@ -39,7 +39,7 @@
 
         const develop = true;
         if (accessToken == null && develop) {
-          window.location.href = develop
+          window.location.href = !develop
             ? "http://localhost:53134/"
             : "https://crypto-discord-bot.onrender.com";
         }
@@ -57,7 +57,11 @@
             return result.json();
           })
           .then((userData) => {
-            const serverList = fetch("http://localhost:53134/" + userData.id)
+            const serverList = fetch(
+              !develop
+                ? "http://localhost:53134/"
+                : "https://crypto-discord-bot.onrender.com" + userData.id,
+            )
               .then((result) => result.json())
               .then((response) => createServerList(response.servers, userData))
 
@@ -74,7 +78,7 @@
       };
 
       // Client-Side JavaScript
-      const baseURL = "http://localhost:53134";
+      const baseURL = "https://crypto-discord-bot.onrender.com";
       const cryptoURL = baseURL + "/crypto";
 
       /*
@@ -114,7 +118,10 @@
             changeLocation(e, serverAdminList[i], i, user.id);
           });
           // myAnchor.setAttribute("href", contentList[i].target_dir); // set the href attribute for the anchor
-          myItem.setAttribute("href", "http://localhost:53134");
+          myItem.setAttribute(
+            "href",
+            "https://crypto-discord-bot.onrender.com",
+          );
 
           var myTitle = document.createTextNode(serverAdminList[i].name); // create the text node to be inside the anchor from the content_title property
           myAnchor.setAttribute("class", "icon-title");

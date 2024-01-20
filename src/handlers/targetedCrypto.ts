@@ -7,8 +7,7 @@ interface ICryptoResponse {
   coinData: CryptoCurrency[];
 }
 
-const url = "http://localhost:53134/crypto";
-
+const url = "https://crypto-discord-bot.onrender.com/crypto";
 /*
     Be able to display an embed 
     Precondition: Need a server id to send a request for data by the server 

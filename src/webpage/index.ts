@@ -73,7 +73,12 @@ app.get("/", (_request: Request, response: Response) => {
 
 // Gets called by the discord redirect to get the dashboard
 app.get("/auth/discord", (_request: Request, response: Response) => {
-  return response.sendFile("./src/webpage/dashboard.html", { root: "." });
+  return response.sendFile(
+    process.env.DEV == "d"
+      ? "./src/webpage/dashboard.html"
+      : "webpage/dashbord.html",
+    { root: "." },
+  );
 });
 const port = "53134";
 app.listen(port, () =>
@@ -83,5 +88,6 @@ app.listen(port, () =>
 export default async function createApp(userObject: Users) {
   await createTable();
   userHandlers = userObject;
+  console.log("HELLO WORLD");
   return app;
 }

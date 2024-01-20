@@ -185,10 +185,10 @@ client.on("interactionCreate", async (interaction: Interaction) => {
   }
 });
 
-const app = createApp(users);
-
 console.log("Bot registration process...");
 client.login(token);
+
+createApp(users);
 
 let lastExecutionTime: Date;
 

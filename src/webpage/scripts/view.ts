@@ -104,7 +104,7 @@ window.onload = async () => {
     }
 
     // Client-Side JavaScript
-    const baseURL: string = "http://localhost:53134";
+    const baseURL: string = "https://crypto-discord-bot.onrender.com";
     const cryptoURL: string = baseURL + "/crypto";
 
     const [getCoinsResponse, errorGettingCoins] = await fetchfromclient<
