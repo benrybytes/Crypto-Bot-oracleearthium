@@ -4,14 +4,16 @@ const config = {
   /* don't expose password or any sensitive info, done only for demo */
   db: {
     host: process.env.LOCAL_IPV4 || "127.0.0.1",
-    user: "root" || process.env.USER,
+    user: process.env.USER || "root",
     password: process.env.PASSWORD,
     database: process.env.DB,
-    port: 3306,
+    port: process.env.PORT || 15934,
     connectTimeout: 60000,
   },
   listPerPage: 10,
 };
+
+console.log(config);
 
 async function query(sql: any, params: any) {
   const connection = await mysql.createConnection(config.db);

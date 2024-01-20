@@ -30,6 +30,10 @@ app.get("/:id", (request: Request, response: Response) => {
 
   response.status(200).send({ servers: serversWithUserAsAdmin });
 });
+// If discord bot goes down
+app.get("/uptime", (req, res) => {
+  res.status(200).send("Uptime Robot ping received.");
+});
 
 app.use("/crypto", crypto);
 app.use("/discord-server", discord_server_routes);
