@@ -19,8 +19,6 @@ window.onload = async () => {
 
       const text = await response.text(); // Get the raw text of the response
 
-      console.log("Response text:", text); // Log the response text
-
       const data = JSON.parse(text); // Try to parse JSON from the response text
       return [Promise.resolve(data), null];
     } catch (error: any) {
@@ -37,11 +35,13 @@ window.onload = async () => {
   const index = searchParams.get("index");
 
   const coinLimit = 50;
-  console.log("hello");
+  const develop = true;
   try {
     const [serverResponse, error] =
       await fetchfromclient<DiscordServerResponse>(
-        `http://localhost:53134/card-data?uid=${uidParam}&index=${index}`,
+        develop
+          ? `http://localhost:53134/card-data?uid=${uidParam}&index=${index}`
+          : `https://crypto-discord-bot.onrender.com/card-data?uid=${uidParam}&index=${index}`,
       );
 
     if (error) {
@@ -64,9 +64,6 @@ window.onload = async () => {
     const top_coins: CryptoCurrency[] = await topCoinsResponse!.then(
       (res) => res.data,
     );
-
-    console.log("Server data: " + JSON.stringify(server_data));
-    console.log("Top coins: " + JSON.stringify(top_coins));
 
     const header = document.getElementById("header");
     const memberCount = document.getElementById("member-count");
@@ -122,10 +119,8 @@ window.onload = async () => {
     let coinData: IGetCryptoResponse = await getCoinsResponse!.then(
       (res: IGetCryptoResponse[]) => res[0],
     );
-    console.log("con data: ", coinData);
     let coinsChosenList: CryptoCurrency[] =
       coinData.coinData.length != 0 ? coinData.coinData : [];
-    console.log("Coins: ", coinsChosenList);
     let filteredCoins = top_coins;
     // Filter out the coins that were selected to the coins selection list
     // Assuming top_coins is an array of CryptoCurrency objects

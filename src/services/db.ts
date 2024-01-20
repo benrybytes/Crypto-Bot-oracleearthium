@@ -1,22 +1,56 @@
-import mysql from "mysql2/promise";
+import mysql, { Connection, ConnectionOptions } from "mysql2/promise";
+import { config } from "../config";
+import { dbconfig } from "../dbconfig.development";
 
-const config = {
+let configuration = {
   /* don't expose password or any sensitive info, done only for demo */
   db: {
-    host: process.env.LOCAL_IPV4 || "127.0.0.1",
-    user: process.env.USER || "root",
+    host: process.env.LOCAL_IPV4,
+    user: process.env.USER,
     password: process.env.PASSWORD,
     database: process.env.DB,
-    port: process.env.PORT || 15934,
+    port: 15934,
     connectTimeout: 60000,
+    /*  ssl: {
+      // Set SSL mode to REQUIRED
+      mode: "REQUIRED",
+      // Optionally provide the CA certificate
+      ca: process.env.CERT,
+    }, */
   },
   listPerPage: 10,
 };
 
-console.log(config);
+configuration = {
+  /* don't expose password or any sensitive info, done only for demo */
+  db: {
+    host: "127.0.0.1",
+    user: "root",
+    password: "bread",
+    database: "your_database_name",
+    port: 3306,
+    connectTimeout: 60000,
+    /*  ssl: {
+      // Set SSL mode to REQUIRED
+      mode: "REQUIRED",
+      // Optionally provide the CA certificate
+      ca: process.env.CERT,
+    }, */
+  },
+  listPerPage: 10,
+};
+
+const configConnection: ConnectionOptions = {
+  host: process.env.LOCAL_IPV4 || "127.0.0.1",
+  user: process.env.USER || "root",
+  password: process.env.PASSWORD || "",
+  database: process.env.DB || "",
+  port: 15934,
+  connectTimeout: 60000,
+};
 
 async function query(sql: any, params: any) {
-  const connection = await mysql.createConnection(config.db);
+  const connection: Connection = await mysql.createConnection(dbconfig);
   const [results] = await connection.execute(sql, params);
 
   return results;

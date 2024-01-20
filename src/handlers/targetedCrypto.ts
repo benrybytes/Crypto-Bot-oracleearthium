@@ -24,11 +24,9 @@ const sendTrackedCryptoData = async (interaction: CommandInteraction) => {
     const [response, error] = await makeFetchRequest<ICryptoResponse[]>(
       url + "/get-crypto?serverId=" + serverId,
     );
-    console.log("response from server: ", JSON.stringify(response));
     const trackedCryptoData: CryptoCurrency[] = await response!.then(
       (res: ICryptoResponse[]) => res[0].coinData,
     );
-    console.log("here is tracked crypto", trackedCryptoData);
     if (error != null) {
       const errorEmbed = new EmbedBuilder()
         .setColor("#ed053f")

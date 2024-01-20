@@ -37,8 +37,11 @@
           fragment.get("token_type"),
         ];
 
-        if (accessToken == null) {
-          window.location.href = "http://localhost:53134/";
+        const develop = true;
+        if (accessToken == null && develop) {
+          window.location.href = develop
+            ? "http://localhost:53134/"
+            : "https://crypto-discord-bot.onrender.com";
         }
 
         // Keep fetching the discord data for consistent login
@@ -100,9 +103,6 @@
 
       const createServerList = (serverAdminList, user) => {
         let adminList = document.getElementById("servers-owned");
-
-        console.log(adminList);
-        console.log(serverAdminList[0]);
 
         for (let i = 0; i < serverAdminList.length; i++) {
           // for each Object in your Array

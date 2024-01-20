@@ -15,9 +15,7 @@ async function makeGetRequest<T>(url: string): Promise<IPostResponse<T>> {
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
-    console.log("response: ", response);
     const data = await response.json();
-    console.log("DDDATA: ", data);
     return { data_response: Promise.resolve(data), error: null };
   } catch (error: any) {
     console.error("Error making fetch request:", error);

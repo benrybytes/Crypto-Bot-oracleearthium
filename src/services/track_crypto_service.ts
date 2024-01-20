@@ -80,8 +80,7 @@ async function insertDiscordServer(serverId: string) {
   try {
     // You can initialize data as needed
     const params = [serverId, JSON.stringify([])];
-    const result = await query(insertServerSQL, params);
-    console.log(result);
+    await query(insertServerSQL, params);
   } catch (error) {
     console.error("Error inserting server:", error);
     throw error;

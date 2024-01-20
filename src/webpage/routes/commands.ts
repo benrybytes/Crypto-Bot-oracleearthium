@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 const express = require("express");
 const router = express.Router();
-const bet_service = require("../../services/bet_crypto_service.ts");
+const bet_service = require("../../services/bet_crypto_service");
 
 router.get(
   "/get-bets",
@@ -42,8 +42,6 @@ router.get(
           req.query.serverId,
           req.query.uid,
         ); // Assuming you have a method in your service to get bets
-
-      console.log("user betting:", userData, userBettingData);
       res.status(200).send({ user: userData, userBetting: userBettingData });
     } catch (err) {
       res.status(500).send(err);
@@ -63,9 +61,6 @@ router.post(
     const username: string = req.body.username;
     const cryptoIncrease: boolean = req.body.cryptoIncrease;
     const current_price: number = req.body.current_price;
-
-    console.log(symbol, uid, bet_amount, req.query.serverId);
-
     try {
       const result = await bet_service.addUserToBetting(
         req.query.serverId,

@@ -18,7 +18,7 @@ import IUser from "./interfaces/users.interface";
 import IUserBetting from "./interfaces/user_betting.interface";
 import { CryptoCurrency } from "./interfaces/cryptoresponse.interface.";
 const token = process.env.DISCORD_TOKEN;
-
+console.log(process.env);
 // bot created for server with permissions
 const client: Client = new Client({
   intents: [
@@ -94,9 +94,6 @@ client.once("ready", async () => {
       console.log(`Server with serverId ${serverId} added.`);
     }
   };
-
-  console.log(usersForEachServer);
-
   users.getServers().map((server: Guild) => {
     handleUsersNewInput(server.id, server);
   });
@@ -153,7 +150,6 @@ client.on("guildMemberAdd", async (member) => {
 });
 client.on("guildCreate", async (guild) => {
   const serverId = guild.id;
-  console.log(serverId);
 
   const checkServerSQL = `
     SELECT *
@@ -211,7 +207,7 @@ let timer = setInterval(function () {
 
     resetLeaderboardAndGivePoints();
   }
-}, 10 * 1000); // Check every minute
+}, 50 * 1000); // Check every minute
 interface IQueryTable {
   usersBetting: IUserBetting[];
 }
@@ -240,10 +236,6 @@ SELECT id, serverId, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].symbol')) AS symb
       await query(checkPriceIncreaseSQL, [symbol]),
     )[0];
 
-    console.log("symbol:", symbol);
-    console.log("parsedResult:", parsedResult);
-    console.log("storedPrice:", parsedResult ? parsedResult.priceUsd : "N/A");
-
     const getUsersSQL = `
   SELECT users 
   FROM bet_crypto 
@@ -253,7 +245,6 @@ SELECT id, serverId, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].symbol')) AS symb
     const userQuery = await emptyOrRows(await query(getUsersSQL, [serverId]));
     const usersArray = userQuery[0].users;
 
-    console.log(usersArray);
     // Find the user in the array and update points
     const userIndex = usersArray.findIndex((user: IUser) => user.uid === uid);
     if (userIndex !== -1) {
@@ -285,17 +276,13 @@ SELECT id, serverId, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].symbol')) AS symb
     const result = await query(getAllUserBettingSQL, [serverId]);
     const row = emptyOrRows(result);
 
-    console.log(row);
     if (row) {
       const userBettingArray: IUserBetting[] = row[0].usersBetting;
-
-      console.log("user begging: ", userBettingArray);
 
       if (userBettingArray && userBettingArray.length > 0) {
         for (const userBet of userBettingArray) {
           // Assuming userBet has the necessary properties
 
-          console.log("begging");
           await processUserBetting(userBet, serverId);
         }
       } else {

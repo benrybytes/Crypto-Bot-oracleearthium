@@ -37,8 +37,6 @@ const displayLeaderboard = async (interaction: CommandInteraction) => {
       });
     }
 
-    console.log("response from post from bet: ", response.data_response);
-
     const users_betting: IUser[] = await response.data_response!.then((res) => {
       return res[0].users;
     });

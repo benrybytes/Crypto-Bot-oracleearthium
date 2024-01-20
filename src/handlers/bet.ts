@@ -52,8 +52,6 @@ const sendBetData = async (interaction: CommandInteraction) => {
       (res: IUserAndBettingUser) => res.userBetting,
     );
 
-    console.log("Here is user betting found: ", userBettingFound);
-
     if (
       Array.isArray(userBettingFound) &&
       userBettingFound[0].userBettingData !== null
@@ -93,8 +91,6 @@ const sendBetData = async (interaction: CommandInteraction) => {
         },
       )) as CryptoCurrency[];
 
-    console.log("crypto: ", tracked_crypto);
-
     // The options passed from the slash command
     const bet_amount: number = parseInt(
       interaction.options.get("bet_amount", true).value as string,
@@ -106,8 +102,6 @@ const sendBetData = async (interaction: CommandInteraction) => {
     const cryptoIncrease = Boolean(
       interaction.options.get("increase_or_decrease", true).value,
     );
-
-    console.log("user data found: ", userDataFound);
 
     // Check if the options are present
     if (userDataFound.points < bet_amount || bet_amount <= 10) {
@@ -147,7 +141,6 @@ const sendBetData = async (interaction: CommandInteraction) => {
       });
     }
 
-    console.log("COIN BETTING: ", coinBettingOn);
     const userBet: IUserBetting = {
       symbol,
       username: interaction.user.username,
@@ -157,7 +150,6 @@ const sendBetData = async (interaction: CommandInteraction) => {
       current_price: parseFloat(coinBettingOn.priceUsd),
     };
 
-    console.log("user bet: ", userBet);
     // Handle requests to server for adding users to betting pool
     const response: IPostResponse<any> = await makePostRequest<any, any>(
       discord_express_url + "/bet-on-symbol?serverId=" + interaction.guildId,
@@ -174,8 +166,6 @@ const sendBetData = async (interaction: CommandInteraction) => {
     if (response.error !== null) {
       return response.error;
     }
-
-    console.log("response from post from bet: ", response.data_response);
 
     const users_betting: IUserBetting[] = await response.data_response!.then(
       (res) => {

@@ -39,9 +39,6 @@ const getUserByUid = async (serverId: string, uid: string) => {
     const result = await query(findUserByUid, [serverId, uid]);
     const userData = emptyOrRows(result)[0].userData;
 
-    console.log("HERE IS RESULT:", result);
-    console.log("HEEHEREEEE IS USER DATA:", userData);
-
     return userData ? userData : null;
   } catch (error) {
     console.error("Error in getUserByUid:", error);
@@ -75,11 +72,7 @@ WHERE JSON_EXTRACT(ub.usersBetting, '$.uid') = ?;
   const result = await query(findUserByUid, [serverId, uid]);
   const userBettingData = emptyOrRows(result);
 
-  console.log("User Betting Data (before getUserByUid):", userBettingData);
-
   const userData = await getUserByUid(serverId, uid);
-
-  console.log("User Data (after getUserByUid):", userData);
 
   return userBettingData[0].userBettingData === null
     ? { userBettingData, userData }
@@ -114,8 +107,6 @@ async function addUserToBetting(
     const result: IUserBetting[] = await query(checkServerSQL, [serverId]);
 
     const parsedResult = emptyOrRows(result)[0].usersBetting;
-
-    console.log("PARSED RESULT:", parsedResult);
 
     if (result && result[0]) {
       // Server exists, update the usersBetting array
