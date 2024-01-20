@@ -1,6 +1,5 @@
 import mysql, { Connection, ConnectionOptions } from "mysql2/promise";
 import { config } from "../config";
-import { dbconfig } from "../dbconfig.development";
 
 const configuration = {
   /* don't expose password or any sensitive info, done only for demo */
@@ -20,6 +19,20 @@ const configuration = {
   },
   listPerPage: 10,
 };
+
+const envConfigs = {
+  host: process.env.HOST,
+  user: process.env.USER,
+  password: process.env.PASSWORD,
+  database: process.env.DATABASE,
+  port: 15934,
+  connectTimeout: 60000,
+};
+console.log("db: ", process.env.DEV);
+const { dbconfig } =
+  process.env.DEV == "d"
+    ? require("../dbconfig.development")
+    : { dbconfig: configuration };
 
 async function query(sql: any, params: any) {
   const connection: Connection = await mysql.createConnection(
