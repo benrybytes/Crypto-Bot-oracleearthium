@@ -36,6 +36,7 @@ const users = new Users();
 
 // When bot is ready, make global commands |
 client.once("ready", async () => {
+  createApp(users);
   await createDiscordDataTable();
   await createDiscordDataTable();
   console.log("Discord bot is ready! 🤖");
@@ -187,8 +188,6 @@ client.on("interactionCreate", async (interaction: Interaction) => {
 
 console.log("Bot registration process...");
 client.login(token);
-
-createApp(users);
 
 let lastExecutionTime: Date;
 
