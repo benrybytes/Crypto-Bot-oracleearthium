@@ -19,7 +19,7 @@ export default async function createApp(userObject: Users) {
   app.use(bodyParser.json());
 
   // Serve static files from the 'dist' directory
-  app.use("/dist", express.static(rootDir));
+   app.use("/dist", express.static(rootDir));
   // Serve static files in the 'styles' directory
   app.use("/styles", express.static(path.join(__dirname, "webpage/styles")));
   // HTTP Request
@@ -73,10 +73,7 @@ export default async function createApp(userObject: Users) {
 
   // Gets called by the discord redirect to get the dashboard
   app.get("/auth/discord", (_request: Request, response: Response) => {
-    return response.sendFile(
-      process.env.DEV == "d"
-        ? "./src/webpage/dashboard.html"
-        : "webpage/dashbord.html",
+    return response.sendFile("./src/webpage/dashboard.html",
       { root: "." },
     );
   });

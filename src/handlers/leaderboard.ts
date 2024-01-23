@@ -52,9 +52,11 @@ const displayLeaderboard = async (interaction: CommandInteraction) => {
         })),
       );
 
+    
+
     return interaction.reply({
       embeds: [highestEmbed],
-      ephemeral: true,
+      ephemeral: false,
     });
   } catch (error) {
     console.error("Error processing slash command:", error);

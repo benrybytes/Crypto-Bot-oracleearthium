@@ -1,9 +1,9 @@
 import { REST, Routes, SlashCommandBuilder } from "discord.js";
 import { config } from "./config";
 import { ICommand } from "./commands/commandList";
-
-const rest = new REST({ version: "10" }).setToken(config.DISCORD_TOKEN);
-const clientId: string = process.env.DISCORD_CLIENT_ID!;
+console.log(config)
+const rest = new REST({ version: "10" }).setToken(config.DISCORD_TOKEN as string);
+const clientId: string = process.env['DISCORD_CLIENT_ID']!;
 
 type DeployCommandsProps = {
   guildId: string;

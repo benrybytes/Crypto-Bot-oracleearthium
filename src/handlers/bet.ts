@@ -9,6 +9,7 @@ import {
   CryptoData,
 } from "../interfaces/cryptoresponse.interface.";
 import IUser from "../interfaces/users.interface";
+import { query } from "../services/db";
 
 interface IUserAndBettingUser {
   user: IUser;
@@ -173,6 +174,27 @@ const sendBetData = async (interaction: CommandInteraction) => {
       },
     );
 
+    // Handle deleting in database amount bet
+    const betSQL = `
+      UPDATE bet_crypto
+      SET users = (
+          SELECT JSON_ARRAYAGG(
+              JSON_SET(
+                  user,
+                  '$.points',
+                  JSON_UNQUOTE(JSON_EXTRACT(user, '$.points')) - ?
+              )
+          )
+          FROM JSON_TABLE(users, '$[*]' COLUMNS (
+              user JSON PATH '$'
+          )) AS t
+      )
+      WHERE serverId = ?;
+
+    `
+
+    await query(betSQL, [bet_amount, interaction.guildId]);
+
     const cryptoListEmbed = new EmbedBuilder()
       .setTitle("Crypto Currencies Tracked: ")
 
@@ -184,10 +206,11 @@ const sendBetData = async (interaction: CommandInteraction) => {
           value: `Bet Amount: ${user.bet_amount} | Crypto Price Increase: ${user.cryptoIncrease}`,
         })),
       );
+    
 
     return interaction.reply({
       embeds: [cryptoListEmbed],
-      ephemeral: true,
+      ephemeral: false,
     });
   } catch (error) {
     console.error("Error processing slash command:", error);

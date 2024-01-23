@@ -58,9 +58,9 @@ const sendUserTopCurrencies = async (interaction: CommandInteraction) => {
     .reverse()
     .slice(0, 10);
   const cryptoListEmbed = new EmbedBuilder()
-    .setTitle("Crypto Currencies Tracked: ")
+    .setTitle("Top 10 Crypto Currencies: ")
 
-    .setDescription("This is a custom embed with properties")
+    .setDescription("Found as of recently")
     .setColor("#3498db")
     .addFields(
       sortedCryptoData.map((cryptoPrice: IPriceList, index: number) => ({
@@ -71,9 +71,10 @@ const sendUserTopCurrencies = async (interaction: CommandInteraction) => {
       })),
     );
 
+
   return interaction.reply({
     embeds: [cryptoListEmbed],
-    ephemeral: true,
+    ephemeral: false,
   });
 };
 export default sendUserTopCurrencies;

@@ -16,9 +16,8 @@ import Users from "./handlers/users";
 import { createDiscordDataTable, emptyOrRows, query } from "./services/db";
 import IUser from "./interfaces/users.interface";
 import IUserBetting from "./interfaces/user_betting.interface";
-import { CryptoCurrency } from "./interfaces/cryptoresponse.interface.";
+import makeFetchRequest from './helpers/fetchHandler'
 const token = process.env.DISCORD_TOKEN;
-console.log(process.env);
 // bot created for server with permissions
 const client: Client = new Client({
   intents: [
@@ -44,27 +43,27 @@ import discord_server_routes from "./webpage/routes/commands";
 const rootDir = path.join(__dirname, "../../", "dist"); // Be able to read from the build folder when running the command tsc
 
 const app = express();
-let userHandlers: Users;
 // Use middleware to parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }));
 
 // Use middleware to parse application/json
 app.use(bodyParser.json());
 
+console.log("root", rootDir);
+console.log("_dirname", __dirname);
 // Serve static files from the 'dist' directory
-app.use("/dist", express.static(rootDir));
-// Serve static files in the 'styles' directory
-app.use("/styles", express.static(path.join(__dirname, "webpage/styles")));
+app.use("/dist", express.static(path.join(__dirname, "../dist")));
+
 // HTTP Request
 app.get("/:id", (request: Request, response: Response) => {
   const uid = request.params.id;
   const serversWithUserAsAdmin: Guild[] =
-    userHandlers.findUserWhereIsAdminById(uid);
+    users.findUserWhereIsAdminById(uid);
 
   response.status(200).send({ servers: serversWithUserAsAdmin });
 });
 // If discord bot goes down
-app.get("/uptime", (req, res) => {
+app.get("/uptime", (_req, res) => {
   res.status(200).send("Uptime Robot ping received.");
 });
 
@@ -77,7 +76,7 @@ app.get("/card-data", (req: Request, res: Response) => {
 
   if (uid !== undefined && !isNaN(index)) {
     const serversWithUserAsAdmin: Guild[] =
-      userHandlers.findUserWhereIsAdminById(uid);
+      users.findUserWhereIsAdminById(uid);
 
     if (index >= 0 && index < serversWithUserAsAdmin.length) {
       res.json({
@@ -98,18 +97,16 @@ app.get("/card-page/:id", (_req: Request, res: Response) => {
 });
 
 // Using CSS styles folder with static files
-app.use("/styles", express.static(path.join(__dirname, "styles")));
+app.use("/styles", express.static(path.join(__dirname, "../src/webpage/styles/")));
 
 app.get("/", (_request: Request, response: Response) => {
+
   return response.sendFile("./src/webpage/main.html", { root: "." });
 });
 
 // Gets called by the discord redirect to get the dashboard
 app.get("/auth/discord", (_request: Request, response: Response) => {
-  return response.sendFile(
-    process.env.DEV == "d"
-      ? "./src/webpage/dashboard.html"
-      : "webpage/dashbord.html",
+  return response.sendFile("./src/webpage/dashboard.html",
     { root: "." },
   );
 });
@@ -118,13 +115,9 @@ app.listen(port, () =>
   console.log(`App listening at http://localhost:${port}`),
 );
 
-createTable();
-userHandlers = users;
-console.log("HELLO WORLD");
-
 // When bot is ready, make global commands |
 client.once("ready", async () => {
-  await createDiscordDataTable();
+  await createTable();
   await createDiscordDataTable();
   console.log("Discord bot is ready! 🤖");
 
@@ -165,15 +158,16 @@ client.once("ready", async () => {
         await findUsersInServer.members.fetch();
 
       // Set users data for all servers bot is connected to if no table is found
-      const usersInDiscordServerData: IUser[] = discordServerUsers.map(
-        (member: GuildMember) => {
+      const usersInDiscordServerData: IUser[] = discordServerUsers
+        .map((member: GuildMember) => {
+          if (member.id === client.user?.id) return;
           return {
             uid: member.id,
             username: member.user.username,
             points: 0,
           };
-        },
-      );
+        })
+        .filter((user: IUser | undefined): user is IUser => user !== undefined);
 
       // Convert serverUsers to a JSON string before inserting
       const usersJson = JSON.stringify(usersInDiscordServerData);
@@ -187,8 +181,33 @@ client.once("ready", async () => {
   });
   await registerCommands({ guildId: "", commands: commandList });
 });
+client.on("guildMemberRemove", async (member) => {
+  const serverId = member.guild.id;
+  const memberId = member.id;
 
-// ... (other imports)
+  // Delete the specific user from the users array in bet_crypto table
+  const removeBetCryptoUserSQL = `
+    UPDATE bet_crypto
+    SET users = ?
+    WHERE serverId = ? 
+  `;
+
+  const getUsersSQL = `
+    SELECT users
+  FROM bet_crypto
+  WHERE serverId = ?;
+  `;
+
+  const usersResult = emptyOrRows(await query(getUsersSQL, [serverId]));
+
+  const usersJson: IUser[] = usersResult[0].users.filter((user: IUser) => user.uid !== memberId);
+
+  const result = emptyOrRows(await query(removeBetCryptoUserSQL, [usersJson, serverId]));
+
+  console.log("DELTED USER: ", result);
+});
+
+
 
 client.on("guildMemberAdd", async (member) => {
   const serverId = member.guild.id;
@@ -202,12 +221,15 @@ client.on("guildMemberAdd", async (member) => {
 
   const result = await query(checkServerSQL, [serverId]);
 
+  console.log("RESULT: ", result)
+
   if (Array.isArray(result) && result.length > 0) {
     // Server present, add the new member to the users array
     const addUserSQL = `
       UPDATE bet_crypto
-      SET users = JSON_ARRAY_APPEND(COALESCE(users, '[]'), '$', ?)
-      WHERE serverId = ?;
+SET users = JSON_MERGE_PRESERVE(COALESCE(users, '[]'), CAST(? AS JSON))
+WHERE serverId = ?;
+
     `;
 
     const newUser: IUser = {
@@ -217,18 +239,15 @@ client.on("guildMemberAdd", async (member) => {
       points: 0,
     };
 
-    await query(addUserSQL, [JSON.stringify(newUser), serverId]);
+    const addUserSQLResult = await query(addUserSQL, [JSON.stringify(newUser), serverId]);
+    console.log(addUserSQLResult)
     console.log(`User with UID ${member.id} added to server ${serverId}.`);
   } else {
     // Server not present, add it with the new member
     const addServerSQL = `
       INSERT INTO bet_crypto (serverId, users, usersBetting)
-      VALUES (?, '[${JSON.stringify({
-        uid: member.id,
-        username: member.user.username,
+VALUES (?, CAST('[{"uid": ?, "username": ?, "points": 0}]' AS JSON), '[]');
 
-        points: 0,
-      })}]', '[]');
     `;
 
     await query(addServerSQL, [serverId]);
@@ -278,25 +297,20 @@ client.login(token);
 
 let lastExecutionTime: Date;
 
-let timer = setInterval(function () {
+setInterval(function() {
   const now = new Date();
 
   // Check if 24 hours have passed since the last execution
 
   if (
     !lastExecutionTime ||
-    now.getTime() - lastExecutionTime.getTime() >= 0.1 * 1000
+    now.getTime() - lastExecutionTime.getTime() >= 12 * 60 * 60 * 1000
   ) {
     lastExecutionTime = now;
 
-    // Your logic to send the GuildMessages
-
     resetLeaderboardAndGivePoints();
   }
-}, 50 * 1000); // Check every minute
-interface IQueryTable {
-  usersBetting: IUserBetting[];
-}
+}, 12 * 60 * 60 * 1000); // 12 hours interval
 
 interface bootlegC {
   id: number;
@@ -309,24 +323,31 @@ const resetLeaderboardAndGivePoints = async () => {
     const { uid, symbol, bet_amount, cryptoIncrease, current_price } = userBet;
 
     // Check if the price has increased based on the symbol
-    const checkPriceIncreaseSQL = `
-      
-SELECT id, serverId, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].symbol')) AS symbol, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].priceUsd')) AS priceUsd
-    FROM tracked_crypto
-    WHERE JSON_CONTAINS(coinData, JSON_OBJECT('symbol', JSON_UNQUOTE(?)), '$')
-    LIMIT 1;
+    //     const checkPriceIncreaseSQL = `
 
-`;
+    // SELECT id, serverId, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].symbol')) AS symbol, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].priceUsd')) AS priceUsd
+    //     FROM tracked_crypto
+    //     WHERE JSON_CONTAINS(coinData, JSON_OBJECT('symbol', JSON_UNQUOTE(?)), '$')
+    //     LIMIT 1;
 
-    const parsedResult: bootlegC = emptyOrRows(
-      await query(checkPriceIncreaseSQL, [symbol]),
-    )[0];
+    // `;
+
+    // const parsedResult: bootlegC = emptyOrRows(
+    //   await query(checkPriceIncreaseSQL, [symbol]),
+    // )[0];
 
     const getUsersSQL = `
   SELECT users 
   FROM bet_crypto 
   WHERE serverId = ?;
 `;
+    const [recentPriceFound, error] = await makeFetchRequest<any>(
+      "https://api.coincap.io/v2/assets?search=" + symbol
+    );
+
+    const trackedCryptoData: string = await recentPriceFound!.then(
+      (res: any) => res.data[0].priceUsd,
+    );
 
     const userQuery = await emptyOrRows(await query(getUsersSQL, [serverId]));
     const usersArray = userQuery[0].users;
@@ -334,7 +355,7 @@ SELECT id, serverId, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].symbol')) AS symb
     // Find the user in the array and update points
     const userIndex = usersArray.findIndex((user: IUser) => user.uid === uid);
     if (userIndex !== -1) {
-      if (parseFloat(parsedResult.priceUsd) > current_price && cryptoIncrease) {
+      if (parseFloat(trackedCryptoData) > current_price && cryptoIncrease) {
         usersArray[userIndex].points += bet_amount * 2;
       } else {
         usersArray[userIndex].points -= bet_amount;
@@ -364,7 +385,7 @@ SELECT id, serverId, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].symbol')) AS symb
 
     if (row) {
       const userBettingArray: IUserBetting[] = row[0].usersBetting;
-
+      console.log("users betting: ", userBettingArray)
       if (userBettingArray && userBettingArray.length > 0) {
         for (const userBet of userBettingArray) {
           // Assuming userBet has the necessary properties
@@ -379,7 +400,30 @@ SELECT id, serverId, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].symbol')) AS symb
     }
   }
 
+  async function addPointsToUsers(serverId: string, pointIncrement: number) {
+    const addPointsToUsersSQL = `
+    UPDATE bet_crypto
+SET users = (
+    SELECT JSON_ARRAYAGG(
+        JSON_SET(
+            user,
+            '$.points',
+            JSON_UNQUOTE(JSON_EXTRACT(user, '$.points')) + ?
+        )
+    )
+    FROM JSON_TABLE(users, '$[*]' COLUMNS (
+        user JSON PATH '$'
+    )) AS t
+)
+WHERE serverId = ?;
+`;
+    const result = await query(addPointsToUsersSQL, [pointIncrement, serverId]);
+    const row = emptyOrRows(result);
+  }
+
   users.getServers().map((server: Guild) => getAllUserBetting(server.id));
+  users.getServers().map((server: Guild) =>
+    addPointsToUsers(server.id, 50))
 
   // Reset all users that are betting after calculating which one's got it correct
   const resetUsersBettingSQL = `

@@ -40,8 +40,8 @@ window.onload = async () => {
     const [serverResponse, error] =
       await fetchfromclient<DiscordServerResponse>(
         develop
-          ? `http://localhost:53134/card-data?uid=${uidParam}&index=${index}`
-          : `https://crypto-discord-bot.onrender.com/card-data?uid=${uidParam}&index=${index}`,
+          ? `https://crypto-bot-oracleearthium-henrymartinez8.replit.app/card-data?uid=${uidParam}&index=${index}`
+          : `https://5aa7f1be-5b28-426d-a19e-7644c70e62d6-00-2r5mdvjrv6zn2.kirk.replit.dev/card-data?uid=${uidParam}&index=${index}`,
       );
 
     if (error) {
@@ -51,6 +51,7 @@ window.onload = async () => {
     const [topCoinsResponse, crypto_error] = await fetchfromclient<CryptoData>(
       `https://api.coincap.io/v2/assets?limit=${coinLimit}`,
     );
+    console.log(topCoinsResponse);
 
     if (crypto_error) {
       throw new Error(`Error fetching top coins data: ${crypto_error}`);
@@ -104,13 +105,14 @@ window.onload = async () => {
     }
 
     // Client-Side JavaScript
-    const baseURL: string = "https://crypto-discord-bot.onrender.com";
+    const baseURL: string = "https://crypto-bot-oracleearthium-henrymartinez8.replit.app";
     const cryptoURL: string = baseURL + "/crypto";
 
     const [getCoinsResponse, errorGettingCoins] = await fetchfromclient<
       IGetCryptoResponse[]
     >(cryptoURL + "/get-crypto?serverId=" + server_data.id);
 
+    console.log(cryptoURL + "/get-crypto?serverId=" + server_data.id)
     if (errorGettingCoins) {
       console.error(errorGettingCoins);
       return;
@@ -119,9 +121,12 @@ window.onload = async () => {
     let coinData: IGetCryptoResponse = await getCoinsResponse!.then(
       (res: IGetCryptoResponse[]) => res[0],
     );
+    console.log(coinData)
     let coinsChosenList: CryptoCurrency[] =
       coinData.coinData.length != 0 ? coinData.coinData : [];
+    console.log(coinsChosenList);
     let filteredCoins = top_coins;
+    console.log(filteredCoins);
     // Filter out the coins that were selected to the coins selection list
     // Assuming top_coins is an array of CryptoCurrency objects
     if (coinsChosenList.length !== 0) {
@@ -187,8 +192,10 @@ window.onload = async () => {
         }
 
         console.log(coinsChosenList.length);
-      }
+      
     };
+
+  } 
 
     // Initialize crypto currency lists ready to be used
     for (let i = 0; i < coinsChosenList.length; i++) {
@@ -204,8 +211,8 @@ window.onload = async () => {
 
       createButton.addEventListener(
         "click",
-        (function (currentToggle) {
-          return function (e: any) {
+        (function(currentToggle) {
+          return function(e: any) {
             moveToChoose(
               e,
               i,
@@ -233,8 +240,8 @@ window.onload = async () => {
 
       createButton.addEventListener(
         "click",
-        (function (currentToggle) {
-          return function (e: any) {
+        (function(currentToggle) {
+          return function(e: any) {
             moveToChoose(
               e,
               i,
@@ -248,7 +255,10 @@ window.onload = async () => {
       );
     }
     // Further processing...
-  } catch (e) {
+
+}
+  catch (e) {
     console.error("Error:", e);
   }
+
 };

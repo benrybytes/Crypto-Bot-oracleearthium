@@ -37,10 +37,12 @@
           fragment.get("token_type"),
         ];
 
+        console.log("access token: ", accessToken)
+
         const develop = true;
         if (accessToken == null && develop) {
-          window.location.href = !develop
-            ? "http://localhost:53134/"
+          window.location.href = develop
+            ? "https://crypto-bot-oracleearthium-henrymartinez8.replit.app/"
             : "https://crypto-discord-bot.onrender.com";
         }
 
@@ -58,9 +60,9 @@
           })
           .then((userData) => {
             const serverList = fetch(
-              !develop
-                ? "http://localhost:53134/"
-                : "https://crypto-discord-bot.onrender.com" + userData.id,
+              develop
+                ? "https://crypto-bot-oracleearthium-henrymartinez8.replit.app/" + userData.id
+                : "https://5aa7f1be-5b28-426d-a19e-7644c70e62d6-00-2r5mdvjrv6zn2.kirk.replit.dev/" + userData.id,
             )
               .then((result) => result.json())
               .then((response) => createServerList(response.servers, userData))
@@ -78,7 +80,7 @@
       };
 
       // Client-Side JavaScript
-      const baseURL = "https://crypto-discord-bot.onrender.com";
+      const baseURL = "https://crypto-bot-oracleearthium-henrymartinez8.replit.app";
       const cryptoURL = baseURL + "/crypto";
 
       /*
@@ -118,10 +120,10 @@
             changeLocation(e, serverAdminList[i], i, user.id);
           });
           // myAnchor.setAttribute("href", contentList[i].target_dir); // set the href attribute for the anchor
-          myItem.setAttribute(
-            "href",
-            "https://crypto-discord-bot.onrender.com",
-          );
+          // myItem.setAttribute(
+          //   "href",
+          //   "https://crypto-bot-oracleearthium-henrymartinez8.replit.app/",
+          // );
 
           var myTitle = document.createTextNode(serverAdminList[i].name); // create the text node to be inside the anchor from the content_title property
           myAnchor.setAttribute("class", "icon-title");

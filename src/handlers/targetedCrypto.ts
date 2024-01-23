@@ -1,5 +1,6 @@
 import { CommandInteraction, EmbedBuilder } from "discord.js";
 import { CryptoCurrency } from "../interfaces/cryptoresponse.interface.";
+import {baseUrl} from '../constants/baseurl'
 import makeFetchRequest from "../helpers/fetchHandler";
 
 interface ICryptoResponse {
@@ -7,7 +8,7 @@ interface ICryptoResponse {
   coinData: CryptoCurrency[];
 }
 
-const url = "https://crypto-discord-bot.onrender.com/crypto";
+const url = baseUrl + "/crypto";
 /*
     Be able to display an embed 
     Precondition: Need a server id to send a request for data by the server 
@@ -42,18 +43,19 @@ const sendTrackedCryptoData = async (interaction: CommandInteraction) => {
     const cryptoListEmbed = new EmbedBuilder()
       .setTitle("Crypto Currencies Tracked: ")
 
-      .setDescription("This is a custom embed with properties")
+      .setDescription("Server currently tracking : " + trackedCryptoData.length + " crypto currencies\nThese are the currencies you could bet on right now!")
       .setColor("#3498db")
       .addFields(
         trackedCryptoData.map((crypto: CryptoCurrency, index: number) => ({
           name: `${index + 1}. ${crypto.name} - (${crypto.symbol})`,
-          value: `Price: $${parseInt(crypto.priceUsd).toFixed(3)}`, // Use toFixed to limit decimal places
+          value: `[More Info Here](${crypto.explorer})`
+           //$${parseInt(crypto.priceUsd).toFixed(3)}`,
         })),
       );
 
     return interaction.reply({
       embeds: [cryptoListEmbed],
-      ephemeral: true,
+      ephemeral: false,
     });
   } catch (e) {
     console.log(e);

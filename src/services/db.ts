@@ -29,16 +29,12 @@ const envConfigs = {
   connectTimeout: 60000,
 };
 console.log("db: ", process.env.DEV);
-const { dbconfig } =
-  process.env.DEV == "d"
-    ? require("../dbconfig.development")
-    : { dbconfig: configuration };
 
 async function query(sql: any, params: any) {
   const connection: Connection = await mysql.createConnection(
-    process.env.DEV == "d"
-      ? dbconfig
-      : {
+   
+       
+       {
           host: process.env.HOST,
           user: process.env.USER,
           password: process.env.PASSWORD,
