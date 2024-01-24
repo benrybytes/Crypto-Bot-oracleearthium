@@ -1,30 +1,31 @@
-export interface IPriceList {
-  key: number;
-  value: number;
-}
+import { IPriceList } from "../interfaces/price_list.interface";
+import IUser from "../interfaces/users.interface";
 
-function quickSort(array: IPriceList[]): IPriceList[] {
+function quickSort<T extends IPriceList | IUser>(
+  array: T[],
+  key: keyof T,
+): T[] {
   // base case
   if (array.length <= 1) {
-    return array; // return the array value to concat
+    return array;
   }
 
-  const pivot = array[0]; // Ignore this number on every recursion, we don't want the same number as we want to take out one number and split the arrays
+  const pivot: T = array[0];
+  const pivotKeyValue = pivot[key]; // Access the key using dynamic key
 
-  // Split the arrays to two halves
-  const left = [];
-  const right = [];
+  const left: T[] = [];
+  const right: T[] = [];
 
   for (let i = 1; i < array.length; i++) {
     // Pivot as the main comparison
-    if (array[i].value < pivot.value) {
+    if (array[i][key] < pivotKeyValue) {
       left.push(array[i]);
     } else {
       right.push(array[i]);
     }
   }
 
-  return quickSort(left).concat(pivot, quickSort(right));
+  return quickSort(left, key).concat(pivot, quickSort(right, key));
 }
 
 export default quickSort;

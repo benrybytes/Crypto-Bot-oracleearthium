@@ -1,10 +1,12 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "es6",
     "module": "commonjs",
     "rootDir": "./src",
     "outDir": "./dist",
     "removeComments": true,
+    "types": ["express", "node"],
+
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,

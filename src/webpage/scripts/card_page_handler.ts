@@ -6,6 +6,32 @@ import {
   DiscordServer,
   DiscordServerResponse,
 } from "../../interfaces/discord_server.interface";
+import IPostResponse from "../../interfaces/post_response.interface";
+
+const requestHeaders: HeadersInit = new Headers();
+requestHeaders.set("Content-Type", "application/json");
+async function makePostRequest<T, U>(
+  url: string,
+  dataToSend: U,
+): Promise<IPostResponse<T>> {
+  try {
+    const response: Response = await fetch(url, {
+      method: "POST",
+      headers: requestHeaders,
+      body: JSON.stringify({ ...dataToSend }),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    const data = await response.json();
+
+    return { data_response: Promise.resolve(data), error: null };
+  } catch (error: any) {
+    console.error("Error making fetch request:", error);
+    return { data_response: null, error: null };
+  }
+}
+export default makePostRequest;
 
 window.onload = async () => {
   async function fetchfromclient<T>(
@@ -16,32 +42,82 @@ window.onload = async () => {
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
-
-      const text = await response.text(); // Get the raw text of the response
-
-      console.log("Response text:", text); // Log the response text
-
-      const data = JSON.parse(text); // Try to parse JSON from the response text
+      const data = await response.json();
       return [Promise.resolve(data), null];
     } catch (error: any) {
       console.error("Error making fetch request:", error);
       return [null, error];
     }
   }
+  const baseUrl = "apiBaseUrl";
 
+  const cryptoUrl = baseUrl + "/crypto";
   // Get the search part of the URL (everything after the "?")
   const searchParams = new URLSearchParams(window.location.search);
+  const resetButton: HTMLButtonElement = document.getElementById(
+    "reset-button",
+  ) as HTMLButtonElement;
+  const resetText = document.getElementById("reset-header")!;
 
   // Get a specific parameter by name
   const uidParam = searchParams.get("uid");
   const index = searchParams.get("index");
+  const pathSegments = window.location.pathname.split("/");
+  const serverIdIndex = pathSegments.indexOf("card-page");
+  let failedResponseInterval: ReturnType<typeof setInterval>;
+
+  interface IResetResponse {
+    message: string;
+  }
+
+  if (serverIdIndex !== -1 && serverIdIndex < pathSegments.length - 1) {
+    const serverId = pathSegments[serverIdIndex + 1];
+    console.log("Card Page Number:", serverId);
+
+    let failedResponseInterval: ReturnType<typeof setInterval>;
+
+    resetButton?.addEventListener("click", async (e) => {
+      e.preventDefault();
+
+      // Disable the button
+      resetButton.disabled = true;
+
+      try {
+        const { data_response, error } = await makePostRequest<
+          IResetResponse,
+          Record<string, null>
+        >(
+          baseUrl + `/discord-server/reset-leaderboard?serverId=${serverId}`,
+          {},
+        );
+
+        // Message that leaderboard was successfully reset
+        const safeMessage: string = await data_response!.then(
+          (res) => res.message,
+        );
+
+        // Display success message for 3 seconds
+        resetText.innerText = safeMessage;
+      } catch (error) {
+        // Display error message for 3 seconds
+        resetText.innerText = "Unsuccessful in reset";
+      } finally {
+        // Enable the button after 3 seconds
+        failedResponseInterval = setInterval(() => {
+          clearInterval(failedResponseInterval);
+          resetText.innerText = "Reset Leaderboard";
+          resetButton.disabled = false;
+        }, 3000);
+      }
+    });
+  }
 
   const coinLimit = 50;
-  console.log("hello");
+
   try {
     const [serverResponse, error] =
       await fetchfromclient<DiscordServerResponse>(
-        `http://localhost:53134/card-data?uid=${uidParam}&index=${index}`,
+        `${baseUrl}/card-data?uid=${uidParam}&index=${index}`,
       );
 
     if (error) {
@@ -51,6 +127,7 @@ window.onload = async () => {
     const [topCoinsResponse, crypto_error] = await fetchfromclient<CryptoData>(
       `https://api.coincap.io/v2/assets?limit=${coinLimit}`,
     );
+    console.log(topCoinsResponse);
 
     if (crypto_error) {
       throw new Error(`Error fetching top coins data: ${crypto_error}`);
@@ -64,9 +141,6 @@ window.onload = async () => {
     const top_coins: CryptoCurrency[] = await topCoinsResponse!.then(
       (res) => res.data,
     );
-
-    console.log("Server data: " + JSON.stringify(server_data));
-    console.log("Top coins: " + JSON.stringify(top_coins));
 
     const header = document.getElementById("header");
     const memberCount = document.getElementById("member-count");
@@ -107,13 +181,10 @@ window.onload = async () => {
     }
 
     // Client-Side JavaScript
-    const baseURL: string = "http://localhost:53134";
-    const cryptoURL: string = baseURL + "/crypto";
 
     const [getCoinsResponse, errorGettingCoins] = await fetchfromclient<
       IGetCryptoResponse[]
-    >(cryptoURL + "/get-crypto?serverId=" + server_data.id);
-
+    >(cryptoUrl + "/get-crypto?serverId=" + server_data.id);
     if (errorGettingCoins) {
       console.error(errorGettingCoins);
       return;
@@ -122,11 +193,12 @@ window.onload = async () => {
     let coinData: IGetCryptoResponse = await getCoinsResponse!.then(
       (res: IGetCryptoResponse[]) => res[0],
     );
-    console.log("con data: ", coinData);
+    console.log(coinData);
     let coinsChosenList: CryptoCurrency[] =
       coinData.coinData.length != 0 ? coinData.coinData : [];
-    console.log("Coins: ", coinsChosenList);
+    console.log(coinsChosenList);
     let filteredCoins = top_coins;
+    console.log(filteredCoins);
     // Filter out the coins that were selected to the coins selection list
     // Assuming top_coins is an array of CryptoCurrency objects
     if (coinsChosenList.length !== 0) {
@@ -155,7 +227,7 @@ window.onload = async () => {
         coinChosen.appendChild(element);
 
         try {
-          await fetch(cryptoURL + "/update-coin-list", {
+          await fetch(cryptoUrl + "/update-coin-list", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -177,7 +249,7 @@ window.onload = async () => {
         );
 
         try {
-          await fetch(cryptoURL + "/update-coin-list", {
+          await fetch(cryptoUrl + "/update-coin-list", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

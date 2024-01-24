@@ -1,20 +1,26 @@
-import mysql from "mysql2/promise";
+import mysql, { Connection, ConnectionOptions } from "mysql2/promise";
+import path from "path";
+const env = process.env.NODE_ENV || "development";
+const config = require(path.join(__dirname, "../config/db_config"))[env];
 
-const config = {
-  /* don't expose password or any sensitive info, done only for demo */
-  db: {
-    host: process.env.LOCAL_IPV4 || "127.0.0.1",
-    user: "root" || process.env.USER,
-    password: process.env.PASSWORD,
-    database: process.env.DB,
-    port: 3306,
-    connectTimeout: 60000,
-  },
-  listPerPage: 10,
-};
+const dbUsername = config.username;
+const dbPassword = config.password;
+const dbHost = config.host;
+const dbDatabaseName = config.database;
+
+if (!dbUsername || !dbPassword || !dbHost) {
+  throw new Error("DB_USERNAME environment variables must be set");
+}
 
 async function query(sql: any, params: any) {
-  const connection = await mysql.createConnection(config.db);
+  const connection: Connection = mysql.createPool({
+    host: dbHost,
+    user: dbUsername,
+    password: dbPassword,
+    database: dbDatabaseName,
+    port: config.port,
+    connectTimeout: 60000,
+  });
   const [results] = await connection.execute(sql, params);
 
   return results;
@@ -65,11 +71,4 @@ function emptyOrRows(rows: any) {
   return rows;
 }
 
-export {
-  config,
-  emptyOrRows,
-  getOffset,
-  query,
-  createTable,
-  createDiscordDataTable,
-};
+export { emptyOrRows, getOffset, query, createTable, createDiscordDataTable };

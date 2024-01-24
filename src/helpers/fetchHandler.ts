@@ -7,7 +7,6 @@ async function makeFetchRequest<T>(
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
     const data = await response.json();
-    console.log("here is data: ", data);
     return [Promise.resolve(data), null];
   } catch (error: any) {
     console.error("Error making fetch request:", error);

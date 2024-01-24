@@ -1,5 +1,6 @@
 import { CommandInteraction, EmbedBuilder } from "discord.js";
 import { CryptoCurrency } from "../interfaces/cryptoresponse.interface.";
+import {baseUrl} from '../constants/baseurl'
 import makeFetchRequest from "../helpers/fetchHandler";
 
 interface ICryptoResponse {
@@ -7,8 +8,7 @@ interface ICryptoResponse {
   coinData: CryptoCurrency[];
 }
 
-const url = "http://localhost:53134/crypto";
-
+const url = baseUrl + "/crypto";
 /*
     Be able to display an embed 
     Precondition: Need a server id to send a request for data by the server 
@@ -20,15 +20,13 @@ const sendTrackedCryptoData = async (interaction: CommandInteraction) => {
   try {
     const serverId = interaction.guildId; // Assuming serverId is the guild ID
     console.log("serverId: ", serverId);
-    // console.log("interaction; ", interaction);
+
     const [response, error] = await makeFetchRequest<ICryptoResponse[]>(
       url + "/get-crypto?serverId=" + serverId,
     );
-    console.log("response from server: ", JSON.stringify(response));
     const trackedCryptoData: CryptoCurrency[] = await response!.then(
       (res: ICryptoResponse[]) => res[0].coinData,
     );
-    console.log("here is tracked crypto", trackedCryptoData);
     if (error != null) {
       const errorEmbed = new EmbedBuilder()
         .setColor("#ed053f")
@@ -45,18 +43,19 @@ const sendTrackedCryptoData = async (interaction: CommandInteraction) => {
     const cryptoListEmbed = new EmbedBuilder()
       .setTitle("Crypto Currencies Tracked: ")
 
-      .setDescription("This is a custom embed with properties")
+      .setDescription("Server currently tracking : " + trackedCryptoData.length + " crypto currencies\nThese are the currencies you could bet on right now!")
       .setColor("#3498db")
       .addFields(
         trackedCryptoData.map((crypto: CryptoCurrency, index: number) => ({
           name: `${index + 1}. ${crypto.name} - (${crypto.symbol})`,
-          value: `Price: $${parseInt(crypto.priceUsd).toFixed(3)}`, // Use toFixed to limit decimal places
+          value: `[More Info Here](${crypto.explorer})`
+           //$${parseInt(crypto.priceUsd).toFixed(3)}`,
         })),
       );
 
     return interaction.reply({
       embeds: [cryptoListEmbed],
-      ephemeral: true,
+      ephemeral: false,
     });
   } catch (e) {
     console.log(e);
