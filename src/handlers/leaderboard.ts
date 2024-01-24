@@ -29,7 +29,6 @@ const displayLeaderboard = async (interaction: CommandInteraction) => {
         console.error("error from server: ", e);
         throw new Error(e);
       });
-
     if (response.error !== null) {
       return interaction.reply({
         embeds: [createErrorEmbed(response.error.message)],
@@ -51,8 +50,6 @@ const displayLeaderboard = async (interaction: CommandInteraction) => {
           value: `Points: ${user.points}`,
         })),
       );
-
-    
 
     return interaction.reply({
       embeds: [highestEmbed],

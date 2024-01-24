@@ -1,48 +1,26 @@
 import mysql, { Connection, ConnectionOptions } from "mysql2/promise";
-import { config } from "../config";
+import path from "path";
+const env = process.env.NODE_ENV || "development";
+const config = require(path.join(__dirname, "../config/db_config"))[env];
 
-const configuration = {
-  /* don't expose password or any sensitive info, done only for demo */
-  db: {
-    host: "127.0.0.1",
-    user: "root",
-    password: "bread",
-    database: "your_database_name",
-    port: 3306,
-    connectTimeout: 60000,
-    /*  ssl: {
-      // Set SSL mode to REQUIRED
-      mode: "REQUIRED",
-      // Optionally provide the CA certificate
-      ca: process.env.CERT,
-    }, */
-  },
-  listPerPage: 10,
-};
+const dbUsername = config.username;
+const dbPassword = config.password;
+const dbHost = config.host;
+const dbDatabaseName = config.database;
 
-const envConfigs = {
-  host: process.env.HOST,
-  user: process.env.USER,
-  password: process.env.PASSWORD,
-  database: process.env.DATABASE,
-  port: 15934,
-  connectTimeout: 60000,
-};
-console.log("db: ", process.env.DEV);
+if (!dbUsername || !dbPassword || !dbHost) {
+  throw new Error("DB_USERNAME environment variables must be set");
+}
 
 async function query(sql: any, params: any) {
-  const connection: Connection = await mysql.createConnection(
-   
-       
-       {
-          host: process.env.HOST,
-          user: process.env.USER,
-          password: process.env.PASSWORD,
-          database: process.env.DATABASE,
-          port: 15934,
-          connectTimeout: 60000,
-        },
-  );
+  const connection: Connection = mysql.createPool({
+    host: dbHost,
+    user: dbUsername,
+    password: dbPassword,
+    database: dbDatabaseName,
+    port: config.port,
+    connectTimeout: 60000,
+  });
   const [results] = await connection.execute(sql, params);
 
   return results;
@@ -93,11 +71,4 @@ function emptyOrRows(rows: any) {
   return rows;
 }
 
-export {
-  config,
-  emptyOrRows,
-  getOffset,
-  query,
-  createTable,
-  createDiscordDataTable,
-};
+export { emptyOrRows, getOffset, query, createTable, createDiscordDataTable };

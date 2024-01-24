@@ -1,9 +1,14 @@
-import { REST, Routes, SlashCommandBuilder } from "discord.js";
-import { config } from "./config";
+import { REST, Routes } from "discord.js";
 import { ICommand } from "./commands/commandList";
-console.log(config)
-const rest = new REST({ version: "10" }).setToken(config.DISCORD_TOKEN as string);
-const clientId: string = process.env['DISCORD_CLIENT_ID']!;
+import path from "path";
+
+const env = process.env.NODE_ENV || "development";
+const config = require(path.join(__dirname, "/config/discord_config"))[env];
+
+const rest = new REST({ version: "10" }).setToken(
+  config.discord_token as string,
+);
+const clientId: string = config.discord_client_id;
 
 type DeployCommandsProps = {
   guildId: string;

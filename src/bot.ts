@@ -13,11 +13,19 @@ import { registerCommands } from "./registerCommands";
 import commandList from "./commands/commandList"; // Import the commands directly
 import createApp from "./webpage/index";
 import Users from "./handlers/users";
-import { createDiscordDataTable, emptyOrRows, query } from "./services/db";
+import {
+  createDiscordDataTable,
+  createTable,
+  emptyOrRows,
+  query,
+} from "./services/db";
 import IUser from "./interfaces/users.interface";
 import IUserBetting from "./interfaces/user_betting.interface";
-import makeFetchRequest from './helpers/fetchHandler'
-const token = process.env.DISCORD_TOKEN;
+import makeFetchRequest from "./helpers/fetchHandler";
+import path from "path";
+const env = process.env.NODE_ENV || "development";
+const config = require(path.join(__dirname, "/config/discord_config"))[env];
+const token = config.discord_token;
 // bot created for server with permissions
 const client: Client = new Client({
   intents: [
@@ -27,94 +35,11 @@ const client: Client = new Client({
   ],
 });
 const users = new Users();
+createApp(users);
 
 // Servers bot has access to
 let guilds: GuildManager;
 let usersForEachServer: User[][]; // Members of different servers in their respective servers made of users
-
-import { Response, Request } from "express";
-import path from "path";
-import express from "express";
-
-import bodyParser from "body-parser";
-import { createTable } from "./services/db";
-const crypto = require("./webpage/routes/crypto");
-import discord_server_routes from "./webpage/routes/commands";
-const rootDir = path.join(__dirname, "../../", "dist"); // Be able to read from the build folder when running the command tsc
-
-const app = express();
-// Use middleware to parse application/x-www-form-urlencoded
-app.use(bodyParser.urlencoded({ extended: false }));
-
-// Use middleware to parse application/json
-app.use(bodyParser.json());
-
-console.log("root", rootDir);
-console.log("_dirname", __dirname);
-// Serve static files from the 'dist' directory
-app.use("/dist", express.static(path.join(__dirname, "../dist")));
-
-// HTTP Request
-app.get("/:id", (request: Request, response: Response) => {
-  const uid = request.params.id;
-  const serversWithUserAsAdmin: Guild[] =
-    users.findUserWhereIsAdminById(uid);
-
-  response.status(200).send({ servers: serversWithUserAsAdmin });
-});
-// If discord bot goes down
-app.get("/uptime", (_req, res) => {
-  res.status(200).send("Uptime Robot ping received.");
-});
-
-app.use("/crypto", crypto);
-app.use("/discord-server", discord_server_routes);
-
-app.get("/card-data", (req: Request, res: Response) => {
-  const uid: string | undefined = req.query.uid as string | undefined;
-  const index: number | undefined = parseInt(req.query.index as string);
-
-  if (uid !== undefined && !isNaN(index)) {
-    const serversWithUserAsAdmin: Guild[] =
-      users.findUserWhereIsAdminById(uid);
-
-    if (index >= 0 && index < serversWithUserAsAdmin.length) {
-      res.json({
-        server_data: serversWithUserAsAdmin[index],
-      });
-    } else {
-      console.log("error here");
-      res.status(400).send({ error: "Invalid index" });
-    }
-  } else {
-    console.log("error there");
-    res.status(400).send({ error: "Invalid query parameters" });
-  }
-});
-
-app.get("/card-page/:id", (_req: Request, res: Response) => {
-  res.status(200).sendFile("./src/webpage/view/view.html", { root: "." });
-});
-
-// Using CSS styles folder with static files
-app.use("/styles", express.static(path.join(__dirname, "../src/webpage/styles/")));
-
-app.get("/", (_request: Request, response: Response) => {
-
-  return response.sendFile("./src/webpage/main.html", { root: "." });
-});
-
-// Gets called by the discord redirect to get the dashboard
-app.get("/auth/discord", (_request: Request, response: Response) => {
-  return response.sendFile("./src/webpage/dashboard.html",
-    { root: "." },
-  );
-});
-const port = "53134";
-app.listen(port, () =>
-  console.log(`App listening at http://localhost:${port}`),
-);
-
 // When bot is ready, make global commands |
 client.once("ready", async () => {
   await createTable();
@@ -200,14 +125,16 @@ client.on("guildMemberRemove", async (member) => {
 
   const usersResult = emptyOrRows(await query(getUsersSQL, [serverId]));
 
-  const usersJson: IUser[] = usersResult[0].users.filter((user: IUser) => user.uid !== memberId);
+  const usersJson: IUser[] = usersResult[0].users.filter(
+    (user: IUser) => user.uid !== memberId,
+  );
 
-  const result = emptyOrRows(await query(removeBetCryptoUserSQL, [usersJson, serverId]));
+  const result = emptyOrRows(
+    await query(removeBetCryptoUserSQL, [usersJson, serverId]),
+  );
 
   console.log("DELTED USER: ", result);
 });
-
-
 
 client.on("guildMemberAdd", async (member) => {
   const serverId = member.guild.id;
@@ -221,7 +148,7 @@ client.on("guildMemberAdd", async (member) => {
 
   const result = await query(checkServerSQL, [serverId]);
 
-  console.log("RESULT: ", result)
+  console.log("RESULT: ", result);
 
   if (Array.isArray(result) && result.length > 0) {
     // Server present, add the new member to the users array
@@ -239,8 +166,11 @@ WHERE serverId = ?;
       points: 0,
     };
 
-    const addUserSQLResult = await query(addUserSQL, [JSON.stringify(newUser), serverId]);
-    console.log(addUserSQLResult)
+    const addUserSQLResult = await query(addUserSQL, [
+      JSON.stringify(newUser),
+      serverId,
+    ]);
+    console.log(addUserSQLResult);
     console.log(`User with UID ${member.id} added to server ${serverId}.`);
   } else {
     // Server not present, add it with the new member
@@ -297,52 +227,35 @@ client.login(token);
 
 let lastExecutionTime: Date;
 
-setInterval(function() {
-  const now = new Date();
+setInterval(
+  function () {
+    const now = new Date();
 
-  // Check if 24 hours have passed since the last execution
+    // Check if 24 hours have passed since the last execution
 
-  if (
-    !lastExecutionTime ||
-    now.getTime() - lastExecutionTime.getTime() >= 12 * 60 * 60 * 1000
-  ) {
-    lastExecutionTime = now;
+    if (
+      !lastExecutionTime ||
+      now.getTime() - lastExecutionTime.getTime() >= 12 * 60 * 60 * 1000
+    ) {
+      lastExecutionTime = now;
 
-    resetLeaderboardAndGivePoints();
-  }
-}, 12 * 60 * 60 * 1000); // 12 hours interval
+      resetLeaderboardAndGivePoints();
+    }
+  },
+  12 * 60 * 60 * 1000,
+); // 12 hours interval
 
-interface bootlegC {
-  id: number;
-  serverId: string;
-  symbol: string;
-  priceUsd: string;
-}
 const resetLeaderboardAndGivePoints = async () => {
   async function processUserBetting(userBet: IUserBetting, serverId: string) {
     const { uid, symbol, bet_amount, cryptoIncrease, current_price } = userBet;
-
-    // Check if the price has increased based on the symbol
-    //     const checkPriceIncreaseSQL = `
-
-    // SELECT id, serverId, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].symbol')) AS symbol, JSON_UNQUOTE(JSON_EXTRACT(coinData, '$[0].priceUsd')) AS priceUsd
-    //     FROM tracked_crypto
-    //     WHERE JSON_CONTAINS(coinData, JSON_OBJECT('symbol', JSON_UNQUOTE(?)), '$')
-    //     LIMIT 1;
-
-    // `;
-
-    // const parsedResult: bootlegC = emptyOrRows(
-    //   await query(checkPriceIncreaseSQL, [symbol]),
-    // )[0];
 
     const getUsersSQL = `
   SELECT users 
   FROM bet_crypto 
   WHERE serverId = ?;
 `;
-    const [recentPriceFound, error] = await makeFetchRequest<any>(
-      "https://api.coincap.io/v2/assets?search=" + symbol
+    const [recentPriceFound, _error] = await makeFetchRequest<any>(
+      "https://api.coincap.io/v2/assets?search=" + symbol,
     );
 
     const trackedCryptoData: string = await recentPriceFound!.then(
@@ -385,7 +298,7 @@ const resetLeaderboardAndGivePoints = async () => {
 
     if (row) {
       const userBettingArray: IUserBetting[] = row[0].usersBetting;
-      console.log("users betting: ", userBettingArray)
+      console.log("users betting: ", userBettingArray);
       if (userBettingArray && userBettingArray.length > 0) {
         for (const userBet of userBettingArray) {
           // Assuming userBet has the necessary properties
@@ -422,8 +335,7 @@ WHERE serverId = ?;
   }
 
   users.getServers().map((server: Guild) => getAllUserBetting(server.id));
-  users.getServers().map((server: Guild) =>
-    addPointsToUsers(server.id, 50))
+  users.getServers().map((server: Guild) => addPointsToUsers(server.id, 50));
 
   // Reset all users that are betting after calculating which one's got it correct
   const resetUsersBettingSQL = `

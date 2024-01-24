@@ -1,7 +1,25 @@
 import { NextFunction, Request, Response } from "express";
+import discord_server_service from "../../services/discord_server_service";
 const express = require("express");
 const router = express.Router();
 const bet_service = require("../../services/bet_crypto_service");
+
+router.post(
+  "/reset-leaderboard",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const serverId = req.query.serverId as string;
+      await discord_server_service.reset_leaderboard_in_db(serverId);
+      res.status(200).send({
+        message: "Successfully reset all points",
+      });
+    } catch (err) {
+      res.status(500).send(err);
+      console.error("Error while getting bets: ", err);
+      next(err);
+    }
+  },
+);
 
 router.get(
   "/get-bets",
