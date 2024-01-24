@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "@discordjs/discord.js": "github:discordjs/discord.js",
+    "@types/node": "^20.11.6",
     "body-parser": "^1.20.2",
     "discord.js": "^14.14.1",
     "dotenv": "^16.3.1",
