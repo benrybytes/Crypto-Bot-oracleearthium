@@ -1,4 +1,4 @@
-import { Response, Request } from "express";
+import { Response, Request, NextFunction } from "express";
 import path from "path";
 import express from "express";
 import Users from "../handlers/users";
@@ -25,7 +25,7 @@ export default async function createApp(userObject: Users) {
   app.use(bodyParser.urlencoded({ extended: false }));
 
   // Add middleware to set the correct MIME type for JavaScript files
-  app.use((req, res, next) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     if (req.url.endsWith(".js")) {
       res.type("application/javascript");
     }
