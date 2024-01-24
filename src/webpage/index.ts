@@ -10,7 +10,7 @@ const discord_config = require(__dirname + "../../config/discord_config")[env];
 const web_config = require(__dirname + "../../config/web_config")[env];
 
 // Routes
-const crypto = require("./routes/crypto");
+import crypto from "./routes/crypto";
 import discord_server_routes from "./routes/commands";
 
 // HTML manipulating

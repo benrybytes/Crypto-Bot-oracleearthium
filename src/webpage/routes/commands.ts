@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import discord_server_service from "../../services/discord_server_service";
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const bet_service = require("../../services/bet_crypto_service");
+import bet_crypto_service from "../../services/bet_crypto_service";
 
 router.post(
   "/reset-leaderboard",
@@ -25,8 +25,8 @@ router.get(
   "/get-bets",
   async function (req: Request, res: Response, next: NextFunction) {
     try {
-      const bets = await bet_service.getUsersBettingFromServerId(
-        req.query.serverId,
+      const bets = await bet_crypto_service.getUsersBettingFromServerId(
+        req.query.serverId as string,
       ); // Assuming you have a method in your service to get bets
       res.status(200).send(bets);
     } catch (err) {
@@ -41,7 +41,9 @@ router.get(
   "/get-users",
   async function (req: Request, res: Response, next: NextFunction) {
     try {
-      const users = await bet_service.getUsersFromServerId(req.query.serverId); // Assuming you have a method in your service to get bets
+      const users = await bet_crypto_service.getUsersFromServerId(
+        req.query.serverId as string,
+      ); // Assuming you have a method in your service to get bets
       res.status(200).send(users);
     } catch (err) {
       res.status(500).send(err);
@@ -56,9 +58,9 @@ router.get(
   async function (req: Request, res: Response, next: NextFunction) {
     try {
       const { userBettingData, userData } =
-        await bet_service.getUserBettingByUid(
-          req.query.serverId,
-          req.query.uid,
+        await bet_crypto_service.getUserBettingByUid(
+          req.query.serverId as string,
+          req.query.uid as string,
         ); // Assuming you have a method in your service to get bets
       res.status(200).send({ user: userData, userBetting: userBettingData });
     } catch (err) {
@@ -80,8 +82,8 @@ router.post(
     const cryptoIncrease: boolean = req.body.cryptoIncrease;
     const current_price: number = req.body.current_price;
     try {
-      const result = await bet_service.addUserToBetting(
-        req.query.serverId,
+      const result = await bet_crypto_service.addUserToBetting(
+        req.query.serverId as string,
         uid,
         bet_amount,
         symbol,

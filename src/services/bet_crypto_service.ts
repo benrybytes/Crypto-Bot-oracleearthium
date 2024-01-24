@@ -139,7 +139,7 @@ async function addUserToBetting(
   }
 }
 
-module.exports = {
+export default {
   addUserToBetting,
   getUsersFromServerId,
   getUsersBettingFromServerId,

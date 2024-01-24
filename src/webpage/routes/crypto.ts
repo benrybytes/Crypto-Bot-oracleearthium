@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { createTable } from "../../services/db";
-
-const express = require("express");
+import * as express from "express";
 const router = express.Router();
 const crypto_service = require("../../services/track_crypto_service");
 
@@ -47,5 +46,4 @@ router.post(
     }
   },
 );
-
-module.exports = router;
+export default router;
