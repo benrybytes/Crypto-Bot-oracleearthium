@@ -6,7 +6,6 @@
     "outDir": "./dist",
     "removeComments": true,
     "types": ["node"],
-
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
