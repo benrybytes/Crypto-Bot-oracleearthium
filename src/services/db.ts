@@ -18,7 +18,7 @@ async function query(sql: any, params: any) {
     user: dbUsername,
     password: dbPassword,
     database: dbDatabaseName,
-    port: config.port,
+    port: 15934,
     connectTimeout: 60000,
   });
   const [results] = await connection.execute(sql, params);
