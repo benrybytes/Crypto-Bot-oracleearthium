@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { createTable } from "../../services/db";
-import * as express from "express";
+import { warn } from "console";
+const express = require("express");
 const router = express.Router();
 const crypto_service = require("../../services/track_crypto_service");
 

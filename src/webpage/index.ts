@@ -1,6 +1,6 @@
 import { Response, Request, NextFunction } from "express";
 import path from "path";
-import express from "express";
+const express = require("express");
 import Users from "../handlers/users";
 import { Guild } from "discord.js";
 import bodyParser from "body-parser";

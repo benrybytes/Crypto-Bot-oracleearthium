@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import discord_server_service from "../../services/discord_server_service";
-import express from "express";
+const express = require("express");
 const router = express.Router();
 import bet_crypto_service from "../../services/bet_crypto_service";
 

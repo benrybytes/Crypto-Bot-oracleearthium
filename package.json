@@ -2,8 +2,8 @@
   "name": "cryptobot",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/webpage/bot.js",
-  "types": "dist/webpage/bot.d.ts",
+  "main": "dist/bot.js",
+  "types": "dist/bot.d.ts",
   "files": [
     "dist",
     "package.json",
