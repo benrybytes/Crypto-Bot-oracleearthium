@@ -2,7 +2,13 @@
   "name": "cryptobot",
   "version": "1.0.0",
   "description": "",
-  "main": "bot.js",
+  "main": "dist/bot.js",
+  "types": "dist/bot.d.ts",
+  "files": [
+    "build",
+    "package.json",
+    "package-lock.json"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch src/index.ts",

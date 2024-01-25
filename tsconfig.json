@@ -2,17 +2,17 @@
   "compilerOptions": {
     "target": "es6",
     "module": "commonjs",
-    "rootDir": "./src",
-    "outDir": "./dist",
-    "removeComments": true,
-    "types": ["node"],
-
-    "resolveJsonModule": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
+    "lib": ["es6"],
+    "allowJs": true,
+    "outDir": "dist",
+    "declaration": true,
+    "rootDir": "src",
     "strict": true,
-    "strictNullChecks": true,
-    "skipLibCheck": true,
-    "allowJs": true
-  }
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true
+  },
+  "exclude": ["node_modules"],
+  "include": ["./src/**/*.ts"]
 }
