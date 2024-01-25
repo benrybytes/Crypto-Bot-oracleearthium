@@ -23,6 +23,7 @@ import IUser from "./interfaces/users.interface";
 import IUserBetting from "./interfaces/user_betting.interface";
 import makeFetchRequest from "./helpers/fetchHandler";
 import path from "path";
+import express from "express";
 const env = process.env.NODE_ENV || "development";
 const config = require(path.join(__dirname, "/config/discord_config"))[env];
 const token = config.discord_token;
