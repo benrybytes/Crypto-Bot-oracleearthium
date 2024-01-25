@@ -11,7 +11,8 @@
     "noImplicitAny": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["express", "body-parser"]
   },
   "exclude": ["node_modules"],
   "include": ["./src/**/*.ts"]
