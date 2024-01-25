@@ -31,7 +31,7 @@ function query(sql, params) {
             user: dbUsername,
             password: dbPassword,
             database: dbDatabaseName,
-            port: config.port,
+            port: 15934,
             connectTimeout: 60000,
         });
         const [results] = yield connection.execute(sql, params);

@@ -13,8 +13,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_server_service_1 = __importDefault(require("../../services/discord_server_service"));
-const express_1 = __importDefault(require("express"));
-const router = express_1.default.Router();
+const express = require("express");
+const router = express.Router();
 const bet_crypto_service_1 = __importDefault(require("../../services/bet_crypto_service"));
 router.post("/reset-leaderboard", (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {

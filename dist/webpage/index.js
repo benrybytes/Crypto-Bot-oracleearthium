@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __importDefault(require("path"));
-const express_1 = __importDefault(require("express"));
+const express = require("express");
 const body_parser_1 = __importDefault(require("body-parser"));
 const db_1 = require("../services/db");
 const env = process.env.NODE_ENV || "development";
@@ -51,7 +51,7 @@ const fs = __importStar(require("fs"));
 function createApp(userObject) {
     return __awaiter(this, void 0, void 0, function* () {
         const rootDir = path_1.default.join(__dirname, "../../");
-        const app = (0, express_1.default)();
+        const app = express();
         let userHandlers;
         // Use middleware to parse application/x-www-form-urlencoded
         app.use(body_parser_1.default.urlencoded({ extended: false }));
@@ -66,9 +66,9 @@ function createApp(userObject) {
         app.use(body_parser_1.default.json());
         console.log("dir: ", path_1.default.join(rootDir, "./dist"));
         // Serve static files from the 'dist' directory
-        app.use("/dist", express_1.default.static(path_1.default.join(rootDir, "./dist/")));
+        app.use("/dist", express.static(path_1.default.join(rootDir, "./dist/")));
         // Serve static files in the 'styles' directory
-        app.use("/styles", express_1.default.static(path_1.default.join(rootDir, "./src/webpage/styles/")));
+        app.use("/styles", express.static(path_1.default.join(rootDir, "./src/webpage/styles/")));
         // HTTP Request
         app.get("/:id", (request, response) => {
             const uid = request.params.id;
@@ -118,7 +118,7 @@ function createApp(userObject) {
             });
         });
         // Using CSS styles folder with static files
-        app.use("/styles", express_1.default.static(path_1.default.join(__dirname, "styles")));
+        app.use("/styles", express.static(path_1.default.join(__dirname, "styles")));
         app.get("/", (_req, res) => {
             fs.readFile("./src/webpage/main.html", "utf8", (err, html) => {
                 if (err) {
