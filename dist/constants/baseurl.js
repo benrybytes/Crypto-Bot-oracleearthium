@@ -4,7 +4,7 @@ exports.crypto_express_url = exports.discord_express_url = exports.baseUrl = voi
 let baseUrl = "http://localhost:53134";
 exports.baseUrl = baseUrl;
 if (process.env.PROVIDER == "onrender") {
-    exports.baseUrl = baseUrl = "https://crypto-discord-bot.onrender.com";
+    exports.baseUrl = baseUrl = process.env.URL || "http://localhost:53134";
 }
 else if (process.env.PROVIDER == "replit.dev") {
     exports.baseUrl = baseUrl =
