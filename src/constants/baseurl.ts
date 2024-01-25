@@ -1,7 +1,7 @@
 let baseUrl = "http://localhost:53134";
 
 if (process.env.PROVIDER == "onrender") {
-  baseUrl = "https://helloworld-p9vq.onrender.com";
+  baseUrl = process.env.URL || "http://localhost:53134";
 } else if (process.env.PROVIDER == "replit.dev") {
   baseUrl =
     "https://5aa7f1be-5b28-426d-a19e-7644c70e62d6-00-2r5mdvjrv6zn2.kirk.replit.dev";
