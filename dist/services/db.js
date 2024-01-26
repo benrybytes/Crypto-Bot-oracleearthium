@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createDiscordDataTable = exports.createTable = exports.query = exports.getOffset = exports.emptyOrRows = void 0;
 const promise_1 = __importDefault(require("mysql2/promise"));
 const path_1 = __importDefault(require("path"));
-const env = "development";
+const env = process.env.NODE_ENV || "development";
 const config = require(path_1.default.join(__dirname, "../config/db_config"))[env];
 const dbUsername = config.username;
 const dbPassword = config.password;
