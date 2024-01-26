@@ -1,6 +1,6 @@
 import mysql, { Connection, ConnectionOptions } from "mysql2/promise";
 import path from "path";
-const env = "development";
+const env = process.env.NODE_ENV || "development";
 const config = require(path.join(__dirname, "../config/db_config"))[env];
 
 const dbUsername = config.username;
