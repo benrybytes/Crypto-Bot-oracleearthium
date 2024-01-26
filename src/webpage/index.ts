@@ -47,6 +47,7 @@ export default async function createApp(userObject: Users) {
   // HTTP Request
   app.get("/:id", (request: Request, response: Response) => {
     const uid = request.params.id;
+    console.log("uid: ", uid);
     const serversWithUserAsAdmin: Guild[] =
       userHandlers.findUserWhereIsAdminById(uid);
 
@@ -160,7 +161,7 @@ export default async function createApp(userObject: Users) {
       );
     });
   });
-  const port = "53134";
+  const port = parseInt(process.env.EXPRESS_PORT!) || 4020;
   app.listen(port, () =>
     console.log(`App listening at http://localhost:${port}`),
   );

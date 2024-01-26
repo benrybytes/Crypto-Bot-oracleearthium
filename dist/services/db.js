@@ -15,12 +15,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createDiscordDataTable = exports.createTable = exports.query = exports.getOffset = exports.emptyOrRows = void 0;
 const promise_1 = __importDefault(require("mysql2/promise"));
 const path_1 = __importDefault(require("path"));
-const env = process.env.NODE_ENV || "development";
+const env = "development";
 const config = require(path_1.default.join(__dirname, "../config/db_config"))[env];
 const dbUsername = config.username;
 const dbPassword = config.password;
 const dbHost = config.host;
 const dbDatabaseName = config.database;
+const port = parseInt(config.port) || 15934;
 if (!dbUsername || !dbPassword || !dbHost) {
     throw new Error("DB_USERNAME environment variables must be set");
 }
@@ -31,8 +32,9 @@ function query(sql, params) {
             user: dbUsername,
             password: dbPassword,
             database: dbDatabaseName,
-            port: 15934,
+            port: port,
             connectTimeout: 60000,
+            connectionLimit: 10, // How many applications could interact with our application db
         });
         const [results] = yield connection.execute(sql, params);
         return results;

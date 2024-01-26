@@ -12,7 +12,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch src/index.ts",
-    "start": "tsc && node dist/bot.js",
+    "start": "concurrently \"npm run start:bot\" \"npm run start:express\"",
+    "start:bot": "node dist/bot.js",
+    "start:express": "node dist/index.js",
     "build": "tsc && tsup src/bot.ts --minify"
   },
   "author": "",
@@ -20,7 +22,9 @@
   "dependencies": {
     "@discordjs/discord.js": "github:discordjs/discord.js",
     "@types/body-parser": "^1.19.5",
+    "@types/redis": "^4.0.11",
     "body-parser": "^1.20.2",
+    "concurrently": "^8.2.2",
     "discord.js": "^14.14.1",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
@@ -30,7 +34,8 @@
     "mysql2": "^3.7.0",
     "node-html-parser": "^6.1.12",
     "passport": "^0.7.0",
-    "passport-discord": "^0.1.4"
+    "passport-discord": "^0.1.4",
+    "redis": "^4.6.12"
   },
   "devDependencies": {
     "@types/body-parser": "^1.19.5",

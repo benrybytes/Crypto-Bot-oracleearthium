@@ -23,7 +23,6 @@ import IUser from "./interfaces/users.interface";
 import IUserBetting from "./interfaces/user_betting.interface";
 import makeFetchRequest from "./helpers/fetchHandler";
 import path from "path";
-import express from "express";
 const env = process.env.NODE_ENV || "development";
 const config = require(path.join(__dirname, "/config/discord_config"))[env];
 const token = config.discord_token;
@@ -35,8 +34,7 @@ const client: Client = new Client({
     GatewayIntentBits.GuildMembers,
   ],
 });
-const users = new Users();
-createApp(users);
+const users = Users.getInstance();
 
 // Servers bot has access to
 let guilds: GuildManager;
@@ -51,9 +49,9 @@ client.once("ready", async () => {
   guilds = client.guilds;
   users.setServers(guilds);
   usersForEachServer = await Promise.all(
-    users
-      .getServers()
-      .map(async (server: Guild) => await users.fetchMembers(server)),
+    Users.getServers().map(
+      async (server: Guild) => await users.fetchMembers(server),
+    ),
   );
 
   const handleUsersNewInput = async (serverId: string, server: Guild) => {
@@ -74,9 +72,9 @@ client.once("ready", async () => {
       VALUES (?, ?, '[]');
     `;
 
-      const findUsersInServer: Guild = users
-        .getServers()
-        .find((e) => e.id == serverId)!;
+      const findUsersInServer: Guild = Users.getServers().find(
+        (e) => e.id == serverId,
+      )!;
 
       const discordServerUsers:
         | GuildMemberManager
@@ -102,7 +100,7 @@ client.once("ready", async () => {
       console.log(`Server with serverId ${serverId} added.`);
     }
   };
-  users.getServers().map((server: Guild) => {
+  Users.getServers().map((server: Guild) => {
     handleUsersNewInput(server.id, server);
   });
   await registerCommands({ guildId: "", commands: commandList });
@@ -335,8 +333,8 @@ WHERE serverId = ?;
     const row = emptyOrRows(result);
   }
 
-  users.getServers().map((server: Guild) => getAllUserBetting(server.id));
-  users.getServers().map((server: Guild) => addPointsToUsers(server.id, 50));
+  Users.getServers().map((server: Guild) => getAllUserBetting(server.id));
+  Users.getServers().map((server: Guild) => addPointsToUsers(server.id, 50));
 
   // Reset all users that are betting after calculating which one's got it correct
   const resetUsersBettingSQL = `

@@ -15,7 +15,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const registerCommands_1 = require("./registerCommands");
 const commandList_1 = __importDefault(require("./commands/commandList")); // Import the commands directly
-const index_1 = __importDefault(require("./webpage/index"));
 const users_1 = __importDefault(require("./handlers/users"));
 const db_1 = require("./services/db");
 const fetchHandler_1 = __importDefault(require("./helpers/fetchHandler"));
@@ -31,8 +30,7 @@ const client = new discord_js_1.Client({
         discord_js_1.GatewayIntentBits.GuildMembers,
     ],
 });
-const users = new users_1.default();
-(0, index_1.default)(users);
+const users = users_1.default.getInstance();
 // Servers bot has access to
 let guilds;
 let usersForEachServer; // Members of different servers in their respective servers made of users
@@ -44,9 +42,7 @@ client.once("ready", () => __awaiter(void 0, void 0, void 0, function* () {
     // Get the servers saved in the cache of the discord bot
     guilds = client.guilds;
     users.setServers(guilds);
-    usersForEachServer = yield Promise.all(users
-        .getServers()
-        .map((server) => __awaiter(void 0, void 0, void 0, function* () { return yield users.fetchMembers(server); })));
+    usersForEachServer = yield Promise.all(users_1.default.getServers().map((server) => __awaiter(void 0, void 0, void 0, function* () { return yield users.fetchMembers(server); })));
     const handleUsersNewInput = (serverId, server) => __awaiter(void 0, void 0, void 0, function* () {
         // Check if the server exists in the database
         const checkServerSQL = `
@@ -62,9 +58,7 @@ client.once("ready", () => __awaiter(void 0, void 0, void 0, function* () {
       INSERT INTO bet_crypto (serverId, users, usersBetting)
       VALUES (?, ?, '[]');
     `;
-            const findUsersInServer = users
-                .getServers()
-                .find((e) => e.id == serverId);
+            const findUsersInServer = users_1.default.getServers().find((e) => e.id == serverId);
             const discordServerUsers = yield findUsersInServer.members.fetch();
             // Set users data for all servers bot is connected to if no table is found
             const usersInDiscordServerData = discordServerUsers
@@ -85,7 +79,7 @@ client.once("ready", () => __awaiter(void 0, void 0, void 0, function* () {
             console.log(`Server with serverId ${serverId} added.`);
         }
     });
-    users.getServers().map((server) => {
+    users_1.default.getServers().map((server) => {
         handleUsersNewInput(server.id, server);
     });
     yield (0, registerCommands_1.registerCommands)({ guildId: "", commands: commandList_1.default });
@@ -277,8 +271,8 @@ WHERE serverId = ?;
             const row = (0, db_1.emptyOrRows)(result);
         });
     }
-    users.getServers().map((server) => getAllUserBetting(server.id));
-    users.getServers().map((server) => addPointsToUsers(server.id, 50));
+    users_1.default.getServers().map((server) => getAllUserBetting(server.id));
+    users_1.default.getServers().map((server) => addPointsToUsers(server.id, 50));
     // Reset all users that are betting after calculating which one's got it correct
     const resetUsersBettingSQL = `
     UPDATE bet_crypto

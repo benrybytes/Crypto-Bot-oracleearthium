@@ -72,6 +72,7 @@ function createApp(userObject) {
         // HTTP Request
         app.get("/:id", (request, response) => {
             const uid = request.params.id;
+            console.log("uid: ", uid);
             const serversWithUserAsAdmin = userHandlers.findUserWhereIsAdminById(uid);
             response.status(200).send({ servers: serversWithUserAsAdmin });
         });
@@ -156,7 +157,7 @@ function createApp(userObject) {
                     .replace(/apiBaseUrl/g, JSON.stringify(web_config.apiBaseUrl)));
             });
         });
-        const port = "53134";
+        const port = parseInt(process.env.EXPRESS_PORT) || 4020;
         app.listen(port, () => console.log(`App listening at http://localhost:${port}`));
         yield (0, db_1.createTable)();
         userHandlers = userObject;

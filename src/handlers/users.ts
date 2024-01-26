@@ -1,4 +1,4 @@
-import { warn } from "console";
+import * as fs from "fs";
 import {
   Collection,
   Guild,
@@ -8,67 +8,80 @@ import {
   User,
 } from "discord.js";
 
-/*
-    Be used to manage servers that the user either owns or is a administrator
-
-*/
 class Users {
-  private servers: Guild[] = []; // Stores the servers where people in the server are
-  private usersForEachServer: User[][] = [[]]; // Data about each server's user base
+  private static instance: Users; // Singleton instance
+  private static servers: Guild[] = []; // Static property
 
-  /* 
-        Fetch method to get latest server member list
-        @param server - The server to search a user list specific to that server
-    */
+  private constructor() {
+    // Private constructor to prevent instantiation
+  }
+
+  public static getInstance(): Users {
+    if (!Users.instance) {
+      Users.instance = new Users();
+      console.log("create new instance");
+    }
+    console.log("get instance");
+    return Users.instance;
+  }
+
   public fetchMembers = async (server: Guild): Promise<User[]> => {
-    const res: Collection<string, GuildMember> = await server.members.fetch();
-
-    // Go through every Guild Member key and make it a user
-    const users: User[] = res.map((member: GuildMember) => member.user);
-
-    return users;
+    if (server instanceof Guild) {
+      try {
+        const res: Collection<string, GuildMember> =
+          await server.members.fetch();
+        const users: User[] = res.map((member: GuildMember) => member.user);
+        return users;
+      } catch (error) {
+        console.error("Error fetching members:", error);
+        return [];
+      }
+    } else {
+      console.error("Invalid server type:", typeof server);
+      return [];
+    }
   };
-  /* 
-    Look through each server and find which server where the bot is, the uid of the user is
-*/
   public findUserWhereIsAdminById = (uid: string): Guild[] => {
-    // Store list of servers with user as admin
     const serversWhereUserIsAdmin: Guild[] = [];
+    console.log("server length: ", Users.getServers().length);
 
-    for (let i = 0; i < this.servers.length; i++) {
-      if (this.lookThroughServersAdmin(this.servers[i], uid) != undefined) {
-        serversWhereUserIsAdmin.push(this.servers[i]);
+    for (let i = 0; i < Users.getServers().length; i++) {
+      if (
+        this.lookThroughServersAdmin(Users.getServers()[i], uid) !== undefined
+      ) {
+        serversWhereUserIsAdmin.push(Users.getServers()[i]);
       }
     }
     return serversWhereUserIsAdmin;
   };
 
-  /*
-    Get a server and look through each member and see whether it is the user and if the user is an administrator
-    @param server - The guild representing a discord server
-    @param uid - The user we are looking to be an admin 
-*/
   public lookThroughServersAdmin = async (
     server: Guild,
     uid: string,
   ): Promise<GuildMember | undefined> => {
-    const res: Collection<string, GuildMember> = await server.members.fetch();
+    try {
+      // Fetch the members of the server
+      const members = await server.members.fetch();
 
-    // Find admin in each server and store the server index
-    const admin: GuildMember | undefined = res.find(
-      (member) =>
-        member.permissions.has(PermissionsBitField.Flags.Administrator) ==
-          true && member.id == uid,
-    );
-    return admin != undefined ? admin : undefined;
+      // Find the admin member
+      const admin = members.find(
+        (member) =>
+          member.permissions.has(PermissionsBitField.Flags.Administrator) &&
+          member.id === uid,
+      );
+
+      return admin || undefined; // Return admin if found, otherwise undefined
+    } catch (error) {
+      console.error("Error fetching server members:", error);
+      return undefined; // Return undefined if an error occurs
+    }
   };
 
   public findListWhereUserIsAdmin = (
     users: User[],
     id: string,
   ): User | null => {
-    const user = users.find((user) => user.id == id);
-
+    const user = users.find((user) => user.id === id);
     return user ? user : null;
   };
 
@@ -78,9 +91,8 @@ class Users {
   ): number[] => {
     const serversIndexes: number[] = [];
 
-    // Check each server bot is in for user that is found
     usersForEachServer.map((users: User[], serverIndex: number) => {
-      if (this.findListWhereUserIsAdmin(users, id) != null) {
+      if (this.findListWhereUserIsAdmin(users, id) !== null) {
         serversIndexes.push(serverIndex);
       }
     });
@@ -88,10 +100,34 @@ class Users {
   };
 
   public setServers = (guilds: GuildManager) => {
-    this.servers = guilds.cache.map((value: Guild) => value.members.guild);
+    Users.servers = guilds.cache.map((value: Guild) => value.members.guild);
+
+    // Save servers to a file
+    this.saveServersToFile();
   };
-  public getServers = () => {
-    return this.servers;
+
+  public static getServers = () => {
+    // Retrieve servers from a file
+    const storedServers = this.getServersFromFile();
+
+    console.log("stored servers: ", storedServers.length);
+
+    // Use stored servers if available, otherwise use the in-memory servers
+    return storedServers.length > 0 ? storedServers : Users.servers;
+  };
+
+  private saveServersToFile = () => {
+    const serversString = JSON.stringify(Users.servers);
+    fs.writeFileSync("servers.json", serversString);
+  };
+
+  private static getServersFromFile = (): Guild[] => {
+    try {
+      const serversString = fs.readFileSync("servers.json", "utf-8");
+      return JSON.parse(serversString);
+    } catch (error) {
+      return [];
+    }
   };
 }
 

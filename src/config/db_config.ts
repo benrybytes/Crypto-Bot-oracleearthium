@@ -10,7 +10,7 @@ module.exports = {
     dialectOptions: {
       charset: "utf8mb4",
     },
-    port: 3306,
+    port: "3306",
     connectionTimeout: 60000,
   },
   test: {
@@ -22,7 +22,7 @@ module.exports = {
     dialectOptions: {
       charset: "utf8mb4",
     },
-    port: 3306,
+    port: "3306",
     connectionTimeout: 60000,
   },
 

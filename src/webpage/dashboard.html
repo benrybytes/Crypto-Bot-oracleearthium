@@ -43,6 +43,8 @@
         if (accessToken == null) {
           window.location.href = apiBaseUrl;
         }
+        console.log(apiBaseUrl);
+        console.log("token type: ", tokenType);
         // Keep fetching the discord data for consistent login
         fetch("https://discord.com/api/users/@me", {
           headers: {
@@ -56,6 +58,7 @@
             return result.json();
           })
           .then((userData) => {
+            console.log("user data: ", userData);
             const serverList = fetch(apiBaseUrl + "/" + userData.id)
               .then((result) => result.json())
               .then((response) => createServerList(response.servers, userData))
@@ -100,6 +103,7 @@
       };
 
       const createServerList = (serverAdminList, user) => {
+        console.log(serverAdminList);
         let adminList = document.getElementById("servers-owned");
 
         for (let i = 0; i < serverAdminList.length; i++) {
