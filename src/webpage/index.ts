@@ -45,34 +45,60 @@ export default async function createApp(userObject: Users) {
   );
 
   // HTTP Request
-  app.get("/:id", (request: Request, response: Response) => {
-    const uid = request.params.id;
-    console.log("uid: ", uid);
-    const serversWithUserAsAdmin: Guild[] =
-      userHandlers.findUserWhereIsAdminById(uid);
+  app.get("/get-admin/:id", async (request: Request, response: Response, next: NextFunction) => {
+    try {
+      const uid = request.params.id as string;
+      if (uid.length <= 16) {
 
-    response.status(200).send({ servers: serversWithUserAsAdmin });
+        next();
+        return;
+      }
+      console.log("uid: ", uid);
+      const serversWithUserAsAdmin: Guild[] = await userHandlers.findUserWhereIsAdminById(uid).then((res) => res);
+      console.log("servers with user as admin: ", serversWithUserAsAdmin);
+      if (serversWithUserAsAdmin.length === 0) {
+        response.status(200).send({ servers: [], message: "No servers owned" });
+        return;
+      }
+
+      response.status(200).send({ servers: serversWithUserAsAdmin, message: serversWithUserAsAdmin.length + " Servers owned by you" });
+    }
+    catch (e) {
+      console.log("error from: id: ", e);
+      response.status(500).send({ servers: [], message: "Error while getting servers owned by user" });
+      next();
+    }
   });
+
   app.use("/crypto", crypto);
   app.use("/discord-server", discord_server_routes);
 
-  app.get("/card-data", (req: Request, res: Response) => {
+  app.get("/card-data", async (req: Request, res: Response) => {
     const uid: string | undefined = req.query.uid as string | undefined;
     const index: number | undefined = parseInt(req.query.index as string);
 
     if (uid !== undefined && !isNaN(index)) {
-      const serversWithUserAsAdmin: Guild[] =
-        userHandlers.findUserWhereIsAdminById(uid);
+      try {
+        const serverWithUserAsAdmin: Guild =
+          await userHandlers.findUserWhereIsAdminById(uid).then((res) => res[index]);
 
-      if (index >= 0 && index < serversWithUserAsAdmin.length) {
-        res.json({
-          server_data: serversWithUserAsAdmin[index],
-        });
-      } else {
-        console.log("error here");
-        res.status(400).send({ error: "Invalid index" });
+        if (index >= 0 && serverWithUserAsAdmin) {
+          res.json({
+            server_data: serverWithUserAsAdmin,
+          });
+        } else {
+          console.log("error here");
+          res.status(400).send({ error: "Invalid index" });
+        }
+
       }
-    } else {
+
+      catch (e) {
+        res.status(400).send({ error: "Error while getting server data" });
+      }
+
+    }
+    else {
       console.log("error there");
       res.status(400).send({ error: "Invalid query parameters" });
     }

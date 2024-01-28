@@ -12,7 +12,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch src/index.ts",
-    "start": "concurrently \"npm run start:bot\" \"npm run start:express\"",
+    "start": "node dist/bot.js",
     "start:bot": "node dist/bot.js",
     "start:express": "node dist/index.js",
     "build": "tsc && tsup src/bot.ts --minify"

@@ -70,34 +70,55 @@ function createApp(userObject) {
         // Serve static files in the 'styles' directory
         app.use("/styles", express.static(path_1.default.join(rootDir, "./src/webpage/styles/")));
         // HTTP Request
-        app.get("/:id", (request, response) => {
-            const uid = request.params.id;
-            console.log("uid: ", uid);
-            const serversWithUserAsAdmin = userHandlers.findUserWhereIsAdminById(uid);
-            response.status(200).send({ servers: serversWithUserAsAdmin });
-        });
+        app.get("/get-admin/:id", (request, response, next) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                const uid = request.params.id;
+                if (uid.length <= 16) {
+                    next();
+                    return;
+                }
+                console.log("uid: ", uid);
+                const serversWithUserAsAdmin = yield userHandlers.findUserWhereIsAdminById(uid).then((res) => res);
+                console.log("servers with user as admin: ", serversWithUserAsAdmin);
+                if (serversWithUserAsAdmin.length === 0) {
+                    response.status(200).send({ servers: [], message: "No servers owned" });
+                    return;
+                }
+                response.status(200).send({ servers: serversWithUserAsAdmin, message: serversWithUserAsAdmin.length + " Servers owned by you" });
+            }
+            catch (e) {
+                console.log("error from: id: ", e);
+                response.status(500).send({ servers: [], message: "Error while getting servers owned by user" });
+                next();
+            }
+        }));
         app.use("/crypto", crypto_1.default);
         app.use("/discord-server", commands_1.default);
-        app.get("/card-data", (req, res) => {
+        app.get("/card-data", (req, res) => __awaiter(this, void 0, void 0, function* () {
             const uid = req.query.uid;
             const index = parseInt(req.query.index);
             if (uid !== undefined && !isNaN(index)) {
-                const serversWithUserAsAdmin = userHandlers.findUserWhereIsAdminById(uid);
-                if (index >= 0 && index < serversWithUserAsAdmin.length) {
-                    res.json({
-                        server_data: serversWithUserAsAdmin[index],
-                    });
+                try {
+                    const serverWithUserAsAdmin = yield userHandlers.findUserWhereIsAdminById(uid).then((res) => res[index]);
+                    if (index >= 0 && serverWithUserAsAdmin) {
+                        res.json({
+                            server_data: serverWithUserAsAdmin,
+                        });
+                    }
+                    else {
+                        console.log("error here");
+                        res.status(400).send({ error: "Invalid index" });
+                    }
                 }
-                else {
-                    console.log("error here");
-                    res.status(400).send({ error: "Invalid index" });
+                catch (e) {
+                    res.status(400).send({ error: "Error while getting server data" });
                 }
             }
             else {
                 console.log("error there");
                 res.status(400).send({ error: "Invalid query parameters" });
             }
-        });
+        }));
         app.get("/card-page/:id", (_req, res) => {
             fs.readFile("./src/webpage/view/view.html", (_err, html) => {
                 // Read the JavaScript file

@@ -14,7 +14,7 @@
     />
   </head>
   <body>
-    <h1>Admin Dashboard</h1>
+    <h1 id="page-title">Admin Dashboard</h1>
     <div
       class="flex items-center justify-center h-screen bg-discord-gray text-white flex-col"
       id="top-header"
@@ -38,10 +38,11 @@
         ];
 
         console.log("access token: ", accessToken);
-
+        console.log(apiBaseUrl);
         // Your client-side code...
         if (accessToken == null) {
-          window.location.href = apiBaseUrl;
+          //window.location.href = "/";
+          return
         }
         console.log(apiBaseUrl);
         console.log("token type: ", tokenType);
@@ -59,9 +60,9 @@
           })
           .then((userData) => {
             console.log("user data: ", userData);
-            const serverList = fetch(apiBaseUrl + "/" + userData.id)
+            const serverList = fetch(apiBaseUrl + "/get-admin/" + userData.id)
               .then((result) => result.json())
-              .then((response) => createServerList(response.servers, userData))
+              .then((response) => createServerList(response.servers, userData, response.message))
 
               .catch((error) => console.error("Second fetch error:", error));
 
@@ -102,9 +103,15 @@
           "/card-page/" + serverData.id + "?index=" + index + "&uid=" + uid;
       };
 
-      const createServerList = (serverAdminList, user) => {
+      const createServerList = (serverAdminList, user, messageFromServer) => {
         console.log(serverAdminList);
+        let pageTitle = document.getElementById("page-title");
         let adminList = document.getElementById("servers-owned");
+
+        if(serverAdminList.length === 0){
+          pageTitle.innerHTML = messageFromServer;
+          return;
+        }
 
         for (let i = 0; i < serverAdminList.length; i++) {
           // for each Object in your Array
@@ -115,11 +122,6 @@
           myItem.addEventListener("click", (e) => {
             changeLocation(e, serverAdminList[i], i, user.id);
           });
-          // myAnchor.setAttribute("href", contentList[i].target_dir); // set the href attribute for the anchor
-          // myItem.setAttribute(
-          //   "href",
-          //   "https://crypto-bot-oracleearthium-henrymartinez8.replit.app/",
-          // );
 
           var myTitle = document.createTextNode(serverAdminList[i].name); // create the text node to be inside the anchor from the content_title property
           myAnchor.setAttribute("class", "icon-title");

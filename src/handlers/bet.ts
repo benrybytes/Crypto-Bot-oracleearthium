@@ -6,94 +6,84 @@ import IUserBetting from "../interfaces/user_betting.interface";
 import makeGetRequest from "../helpers/makeGetRequest";
 import {
   CryptoCurrency,
-  CryptoData,
 } from "../interfaces/cryptoresponse.interface.";
 import IUser from "../interfaces/users.interface";
-import { query } from "../services/db";
+import { createErrorEmbed } from "./error";
 
 interface IUserAndBettingUser {
   user: IUser;
-  userBetting: IUserBetting;
+  user_betting: IUserBetting;
 }
 
 interface ICryptoResponseDB {
   id: number;
   serverId: string;
-  coinData: CryptoData[];
+  coinData: CryptoCurrency[];
 }
 
-const createErrorEmbed = (message: string): EmbedBuilder => {
-  const errorEmbed = new EmbedBuilder()
-    .setColor("#ed053f")
-    .setTitle("Error")
-    .setDescription(`An error occurred: ${message}`);
+interface IUpdatedUserBettingResponse {
+  updated_users_betting: IUserBetting[];
+}
 
-  return errorEmbed;
-};
+
 
 const sendBetData = async (interaction: CommandInteraction) => {
   try {
     const findUserByUidResponse: IPostResponse<IUserAndBettingUser> =
       await makeGetRequest<IUserAndBettingUser>(
         discord_express_url +
-          "/find-user-betting-and-user-by-uid?serverId=" +
-          interaction.guildId +
-          "&uid=" +
-          interaction.user.id,
+        "/find-user-betting-and-user-by-uid?serverId=" +
+        interaction.guildId +
+        "&uid=" +
+        interaction.user.id,
       )
         .then((res) => {
-          return { data_response: res.data_response, error: null };
+          return { data_response: res.data_response!, error: null };
         })
         .catch((e) => {
-          console.log("error from server: ", e);
+          console.log("Error from server: ", e);
           throw new Error(e);
         });
 
-    const userBettingFound = await findUserByUidResponse.data_response!.then(
-      (res: IUserAndBettingUser) => res.userBetting,
-    );
-
-    if (
-      Array.isArray(userBettingFound) &&
-      userBettingFound[0].userBettingData !== null
-    ) {
+    if (findUserByUidResponse.error !== null) {
       return interaction.reply({
-        embeds: [createErrorEmbed("User in betting list already")],
+        embeds: [createErrorEmbed("Failed to fetch user data")],
         ephemeral: true,
       });
     }
 
-    const userFound: any = await findUserByUidResponse.data_response!.then(
-      (res: IUserAndBettingUser) => res.user,
-    );
-    const userDataFound = userFound[0] as any;
+    const userBettingFromRes = await findUserByUidResponse.data_response?.then((res) => res.user_betting)!;
+    const userFromRes = await findUserByUidResponse.data_response?.then((res) => res.user)!;
+    if (userBettingFromRes !== null) {
+      return interaction.reply({
+        embeds: [createErrorEmbed("User is already in the betting list")],
+        ephemeral: true,
+      });
+    }
 
-    const getCoinsFromServer: IPostResponse<ICryptoResponseDB[]> =
-      await makeGetRequest<ICryptoResponseDB[]>(
+    const getCoinsFromServer: IPostResponse<ICryptoResponseDB> =
+      await makeGetRequest<ICryptoResponseDB>(
         crypto_express_url + "/get-crypto?serverId=" + interaction.guildId,
       )
         .then((res) => {
           return { data_response: res.data_response, error: null };
         })
         .catch((e) => {
-          console.log("error from server: ", e);
+          console.log("Error from server: ", e);
           throw new Error(e);
         });
 
     if (getCoinsFromServer.error !== null) {
-      return getCoinsFromServer.error;
+      return interaction.reply({
+        embeds: [createErrorEmbed("Failed to fetch crypto data")],
+        ephemeral: true,
+      });
     }
 
-    const tracked_crypto: CryptoCurrency[] =
-      (await getCoinsFromServer.data_response!.then(
-        (res: ICryptoResponseDB[]) => {
-          console.log("CRYPTO DATA FROM RESPONSE: ", res[0].coinData);
-          return res[0].coinData;
-        },
-      )) as CryptoCurrency[];
+    const trackedCrypto: CryptoCurrency[] =
+      await getCoinsFromServer.data_response!.then((res) => res.coinData);
 
-    // The options passed from the slash command
-    const bet_amount: number = parseInt(
+    const betAmount: number = parseInt(
       interaction.options.get("bet_amount", true).value as string,
     );
     const symbol = interaction.options
@@ -104,55 +94,42 @@ const sendBetData = async (interaction: CommandInteraction) => {
       interaction.options.get("increase_or_decrease", true).value,
     );
 
-    // Check if the options are present
-    if (userDataFound.points < bet_amount || bet_amount <= 10) {
+    if (userFromRes.points < betAmount || betAmount <= 10) {
       return interaction.reply({
         embeds: [
           createErrorEmbed(
-            "minimum amount to bet is 10 or don't have enough points to bet",
+            "Minimum amount to bet is 10 or you don't have enough points to bet",
           ),
         ],
         ephemeral: true,
       });
     }
 
-    const coinBettingOn = tracked_crypto.find(
-      (coin: CryptoCurrency) => coin.symbol === symbol,
+    const coinBettingOn = trackedCrypto.find(
+      (coin: CryptoCurrency) => coin.symbol == symbol,
     );
-    if (!coinBettingOn) {
-      return interaction.reply({
-        embeds: [createErrorEmbed("Please Input a correct crypto symbol")],
-        ephemeral: true,
-      });
-    }
 
-    const priceUsd = coinBettingOn.priceUsd || "0";
-    console.log("PRICE: ", priceUsd);
-    console.log("symbol: ", symbol);
-    // Continue processing with the priceUsd value...
-    if (coinBettingOn === undefined || symbol === null) {
+    if (coinBettingOn == undefined) {
       return interaction.reply({
-        embeds: [createErrorEmbed("Please Input a correct crypto symbol")],
+        embeds: [createErrorEmbed("Please input a correct crypto symbol")],
         ephemeral: true,
       });
     } else if (typeof cryptoIncrease !== "boolean") {
       return interaction.reply({
-        embeds: [createErrorEmbed("Please Input a correct prediction")],
+        embeds: [createErrorEmbed("Please input a correct prediction")],
         ephemeral: true,
       });
     }
-
     const userBet: IUserBetting = {
       symbol,
-      username: interaction.user.username,
-      uid: interaction.member?.user.id!,
-      bet_amount,
+      username: userFromRes.username,
+      uid: userFromRes.uid,
+      bet_amount: betAmount,
       cryptoIncrease,
       current_price: parseFloat(coinBettingOn.priceUsd),
     };
 
-    // Handle requests to server for adding users to betting pool
-    const response: IPostResponse<any> = await makePostRequest<any, any>(
+    const user_betting_response: IPostResponse<IUpdatedUserBettingResponse> = await makePostRequest<IUpdatedUserBettingResponse, IUserBetting>(
       discord_express_url + "/bet-on-symbol?serverId=" + interaction.guildId,
       userBet,
     )
@@ -160,61 +137,39 @@ const sendBetData = async (interaction: CommandInteraction) => {
         return { data_response: res.data_response, error: null };
       })
       .catch((e) => {
-        console.log("error from server: ", e);
-        throw new Error(e);
+        return { data_response: null, error: e };
       });
 
-    if (response.error !== null) {
-      return response.error;
+    if (user_betting_response.error !== null) {
+      return interaction.reply({
+        embeds: [createErrorEmbed("Failed to place bet")],
+        ephemeral: true,
+      });
     }
 
-    const users_betting: IUserBetting[] = await response.data_response!.then(
-      (res) => {
-        return res[0].usersBetting;
-      },
-    );
-
-    // Handle deleting in database amount bet
-    const betSQL = `
-      UPDATE bet_crypto
-      SET users = (
-          SELECT JSON_ARRAYAGG(
-              JSON_SET(
-                  user,
-                  '$.points',
-                  JSON_UNQUOTE(JSON_EXTRACT(user, '$.points')) - ?
-              )
-          )
-          FROM JSON_TABLE(users, '$[*]' COLUMNS (
-              user JSON PATH '$'
-          )) AS t
-      )
-      WHERE serverId = ?;
-
-    `
-
-    await query(betSQL, [bet_amount, interaction.guildId]);
+    const usersBetting: IUserBetting[] = await user_betting_response.data_response!.then((res: IUpdatedUserBettingResponse) => res.updated_users_betting);
 
     const cryptoListEmbed = new EmbedBuilder()
-      .setTitle("Crypto Currencies Tracked: ")
-
-      .setDescription(`${interaction.member!.user.username} bet ${bet_amount}`)
+      .setTitle("Users betting: ")
+      .setDescription(`${interaction.member!.user.username} bet ${betAmount}`)
       .setColor("#3498db")
       .addFields(
-        users_betting.map((user: IUserBetting) => ({
+        usersBetting.map((user: IUserBetting) => ({
           name: `User: ${user.username}`,
           value: `Bet Amount: ${user.bet_amount} | Crypto Price Increase: ${user.cryptoIncrease}`,
         })),
       );
-    
 
-    return interaction.reply({
+    await interaction.reply({
       embeds: [cryptoListEmbed],
       ephemeral: false,
     });
   } catch (error) {
     console.error("Error processing slash command:", error);
-    return error;
+    return interaction.reply({
+      embeds: [createErrorEmbed("An error occurred while processing your command")],
+      ephemeral: true,
+    });
   }
 };
 

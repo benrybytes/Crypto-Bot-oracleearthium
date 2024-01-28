@@ -7,13 +7,8 @@ declare const _default: {
     getUsersFromServerId: typeof getUsersFromServerId;
     getUsersBettingFromServerId: typeof getUsersBettingFromServerId;
     getUserBettingByUid: (serverId: string, uid: string) => Promise<{
-        userBettingData: any;
-        userData: any;
-        data?: undefined;
-    } | {
-        data: undefined;
-        userData: undefined;
-        userBettingData?: undefined;
+        user_betting: any;
+        user: any;
     }>;
 };
 export default _default;

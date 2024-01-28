@@ -59,8 +59,8 @@ router.get("/get-users", function (req, res, next) {
 router.get("/find-user-betting-and-user-by-uid", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const { userBettingData, userData } = yield bet_crypto_service_1.default.getUserBettingByUid(req.query.serverId, req.query.uid); // Assuming you have a method in your service to get bets
-            res.status(200).send({ user: userData, userBetting: userBettingData });
+            const { user_betting, user } = yield bet_crypto_service_1.default.getUserBettingByUid(req.query.serverId, req.query.uid); // Assuming you have a method in your service to get bets
+            res.status(200).send({ user, user_betting });
         }
         catch (err) {
             res.status(500).send(err);
@@ -78,8 +78,10 @@ router.post("/bet-on-symbol", function (req, res, next) {
         const cryptoIncrease = req.body.cryptoIncrease;
         const current_price = req.body.current_price;
         try {
-            const result = yield bet_crypto_service_1.default.addUserToBetting(req.query.serverId, uid, bet_amount, symbol, username, cryptoIncrease, current_price);
-            res.status(200).json(result);
+            const updated_users_betting = yield bet_crypto_service_1.default.addUserToBetting(req.query.serverId, uid, bet_amount, symbol, username, cryptoIncrease, current_price);
+            res.status(200).send({
+                updated_users_betting
+            });
         }
         catch (err) {
             res.status(400).send(err);

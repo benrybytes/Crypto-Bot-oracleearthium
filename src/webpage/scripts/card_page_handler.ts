@@ -136,7 +136,7 @@ window.onload = async () => {
     // Be able to get data from chaining the response to get the data we need by unwrapping it
 
     const server_data: DiscordServer = await serverResponse!.then(
-      (res) => res.servers[0],
+      (res) => res.server_data,
     );
     const top_coins: CryptoCurrency[] = await topCoinsResponse!.then(
       (res) => res.data,
@@ -281,8 +281,8 @@ window.onload = async () => {
 
       createButton.addEventListener(
         "click",
-        (function (currentToggle) {
-          return function (e: any) {
+        (function(currentToggle) {
+          return function(e: any) {
             moveToChoose(
               e,
               i,
@@ -310,8 +310,8 @@ window.onload = async () => {
 
       createButton.addEventListener(
         "click",
-        (function (currentToggle) {
-          return function (e: any) {
+        (function(currentToggle) {
+          return function(e: any) {
             moveToChoose(
               e,
               i,

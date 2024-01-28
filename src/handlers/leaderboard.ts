@@ -1,5 +1,4 @@
 import { CommandInteraction, EmbedBuilder } from "discord.js";
-import makePostRequest from "../helpers/postHandler";
 import { discord_express_url } from "../constants/baseurl";
 import IPostResponse from "../interfaces/post_response.interface";
 import IUserBetting from "../interfaces/user_betting.interface";
@@ -51,7 +50,7 @@ const displayLeaderboard = async (interaction: CommandInteraction) => {
         })),
       );
 
-    return interaction.reply({
+    await interaction.reply({
       embeds: [highestEmbed],
       ephemeral: false,
     });

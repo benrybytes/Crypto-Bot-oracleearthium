@@ -1,12 +1,16 @@
 import { CommandInteraction, EmbedBuilder } from "discord.js";
 import { CryptoCurrency } from "../interfaces/cryptoresponse.interface.";
-import {baseUrl} from '../constants/baseurl'
+import { baseUrl } from '../constants/baseurl'
 import makeFetchRequest from "../helpers/fetchHandler";
+import makeGetRequest from "../helpers/makeGetRequest";
+import { createErrorEmbed } from "./error";
 
-interface ICryptoResponse {
+interface ICryptoResponseDB {
+  id: number;
   serverId: string;
   coinData: CryptoCurrency[];
 }
+
 
 const url = baseUrl + "/crypto";
 /*
@@ -21,20 +25,15 @@ const sendTrackedCryptoData = async (interaction: CommandInteraction) => {
     const serverId = interaction.guildId; // Assuming serverId is the guild ID
     console.log("serverId: ", serverId);
 
-    const [response, error] = await makeFetchRequest<ICryptoResponse[]>(
+    const { data_response, error } = await makeGetRequest<ICryptoResponseDB>(
       url + "/get-crypto?serverId=" + serverId,
     );
-    const trackedCryptoData: CryptoCurrency[] = await response!.then(
-      (res: ICryptoResponse[]) => res[0].coinData,
-    );
     if (error != null) {
-      const errorEmbed = new EmbedBuilder()
-        .setColor("#ed053f")
-        .setTitle("Error")
-        .setDescription(`An error occurred: ${error.message}`);
-
-      return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+      createErrorEmbed("Error getting tracked coins");
     }
+    const trackedCryptoData: CryptoCurrency[] = await data_response!.then(
+      (res: ICryptoResponseDB) => res.coinData,
+    );
 
     if (!trackedCryptoData || trackedCryptoData.length === 0) {
       return interaction.reply("No tracked crypto data available.");
@@ -49,11 +48,11 @@ const sendTrackedCryptoData = async (interaction: CommandInteraction) => {
         trackedCryptoData.map((crypto: CryptoCurrency, index: number) => ({
           name: `${index + 1}. ${crypto.name} - (${crypto.symbol})`,
           value: `[More Info Here](${crypto.explorer})`
-           //$${parseInt(crypto.priceUsd).toFixed(3)}`,
+          //$${parseInt(crypto.priceUsd).toFixed(3)}`,
         })),
       );
 
-    return interaction.reply({
+    await interaction.reply({
       embeds: [cryptoListEmbed],
       ephemeral: false,
     });

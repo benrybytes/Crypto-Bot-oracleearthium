@@ -1,4 +1,5 @@
 import { CryptoCurrency } from "../interfaces/cryptoresponse.interface.";
+import { emptyOrRows } from "./db";
 const { query } = require("./db");
 
 // Insert new server with selected coins into the database
@@ -32,8 +33,8 @@ async function getSelectedCoins(serverId: string) {
 
   try {
     const result = await query(sql, params);
-    console.log("result: ", result);
-    return result;
+    const resolve = emptyOrRows(result);
+    return resolve[0];
   } catch (error) {
     console.error("Error retrieving coins:", error);
     throw error;

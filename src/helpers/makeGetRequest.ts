@@ -1,7 +1,7 @@
 import IPostResponse from "../interfaces/post_response.interface";
 
 // Content we want to send to server
-const requestHeaders: HeadersInit = new Headers();
+const requestHeaders: Headers = new Headers();
 requestHeaders.set("Content-Type", "application/json");
 
 /*
@@ -15,7 +15,7 @@ async function makeGetRequest<T>(url: string): Promise<IPostResponse<T>> {
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
-    const data = await response.json();
+    const data = await response.json() as T;
     return { data_response: Promise.resolve(data), error: null };
   } catch (error: any) {
     console.error("Error making fetch request:", error);

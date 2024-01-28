@@ -40,7 +40,7 @@ const sendUserTopCurrencies = (interaction) => __awaiter(void 0, void 0, void 0,
         name: `${index + 1}. ${convertPriceStringToNumber[cryptoPrice.key].name} (${convertPriceStringToNumber[cryptoPrice.key].symbol})`,
         value: `Price: $${cryptoPrice.value.toFixed(2)}`, // Use toFixed to limit decimal places
     })));
-    return interaction.reply({
+    yield interaction.reply({
         embeds: [cryptoListEmbed],
         ephemeral: false,
     });

@@ -18,34 +18,21 @@ function getUsersBettingFromServerId(serverId) {
     FROM bet_crypto
     WHERE serverId = ?;
 `;
-        const serverBetData = yield query(getUsersBetting, [serverId]);
-        return serverBetData;
+        const result = yield query(getUsersBetting, [serverId]);
+        const resolve = (0, db_1.emptyOrRows)(result)[0].usersBetting;
+        return resolve;
     });
 }
 const getUserByUid = (serverId, uid) => __awaiter(void 0, void 0, void 0, function* () {
     const findUserByUid = `
-    SELECT JSON_ARRAYAGG(
-      JSON_OBJECT(
-        'uid', users.uid,
-        'username', users.username,
-        'points', users.points
-      )
-    ) AS userData
-    FROM bet_crypto,
-    JSON_TABLE(
-      bet_crypto.users,
-      '$[*]' COLUMNS (
-        uid VARCHAR(255) PATH '$.uid',
-        username VARCHAR(255) PATH '$.username',
-        points INT PATH '$.points'
-      )
-    ) AS users
-    WHERE bet_crypto.serverId = ? AND users.uid = ?;
+    SELECT json_extract(users, '$[0]') AS user
+    FROM bet_crypto
+    WHERE serverId = ? AND JSON_CONTAINS(users, ?);
   `;
     try {
-        const result = yield query(findUserByUid, [serverId, uid]);
-        const userData = (0, db_1.emptyOrRows)(result)[0].userData;
-        return userData ? userData : null;
+        const result = yield query(findUserByUid, [serverId, JSON.stringify({ "uid": uid })]);
+        const user_data = (0, db_1.emptyOrRows)(result)[0].user; // Get actual data
+        return user_data ? user_data : null;
     }
     catch (error) {
         console.error("Error in getUserByUid:", error);
@@ -54,33 +41,19 @@ const getUserByUid = (serverId, uid) => __awaiter(void 0, void 0, void 0, functi
 });
 const getUserBettingByUid = (serverId, uid) => __awaiter(void 0, void 0, void 0, function* () {
     const findUserByUid = `
-    
-
-SELECT JSON_ARRAYAGG(
-    JSON_OBJECT(
-        'uid', JSON_EXTRACT(ub.usersBetting, '$.uid'),
-        'bet_amount', JSON_EXTRACT(ub.usersBetting, '$.bet_amount'),
-        'symbol', JSON_EXTRACT(ub.usersBetting, '$.symbol'),
-        'cryptoIncrease', JSON_EXTRACT(ub.usersBetting, '$.cryptoIncrease'),
-        'username', JSON_EXTRACT(ub.usersBetting, '$.username'),
-        'current_price', JSON_EXTRACT(ub.usersBetting, '$.current_price')
-    )
-) AS userBettingData
-FROM (
-    SELECT JSON_ARRAYAGG(usersBetting) AS usersBetting
+    SELECT json_extract(usersBetting, '$[0]') AS user_betting
     FROM bet_crypto
-    WHERE serverId = ?
-) AS ub
-WHERE JSON_EXTRACT(ub.usersBetting, '$.uid') = ?;
-
-
+    WHERE serverId = ? AND JSON_CONTAINS(usersBetting, ?);
   `;
-    const result = yield query(findUserByUid, [serverId, uid]);
-    const userBettingData = (0, db_1.emptyOrRows)(result);
-    const userData = yield getUserByUid(serverId, uid);
-    return userBettingData[0].userBettingData === null
-        ? { userBettingData, userData }
-        : { data: undefined, userData: undefined };
+    // Add single quotes to the selector for uid to use insertion easier as JSON_CONTAINS uses stringified json text for second argument
+    const result = yield query(findUserByUid, [serverId, JSON.stringify({ "uid": uid })]);
+    const user_betting_rows = (0, db_1.emptyOrRows)(result);
+    const user_data = yield getUserByUid(serverId, uid);
+    console.log("here is user_data", user_data);
+    // Check whether there is a user betting and send user regardless
+    return user_betting_rows.length !== 0
+        ? { user_betting: user_betting_rows[0].user_betting, user: user_data }
+        : { user_betting: null, user: user_data };
 });
 function getUsersFromServerId(serverId) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -120,7 +93,29 @@ function addUserToBetting(serverId, uid, bet_amount, symbol, username, cryptoInc
         WHERE serverId = ?;
       `;
                 yield query(updateUsersBettingSQL, [usersBetting, serverId]);
-                return result;
+                const betSQL = `
+        UPDATE bet_crypto
+        SET users = (
+          SELECT JSON_ARRAYAGG(
+            CASE
+              WHEN JSON_UNQUOTE(JSON_EXTRACT(user, '$.uid')) = ? THEN
+                JSON_SET(
+                  user,
+                  '$.points',
+                  JSON_UNQUOTE(JSON_EXTRACT(user, '$.points')) - ?
+                )
+              ELSE
+                user
+            END
+          )
+          FROM JSON_TABLE(users, '$[*]' COLUMNS (
+            user JSON PATH '$'
+          )) AS t
+        )
+        WHERE serverId = ?;
+      `;
+                yield query(betSQL, [uid, bet_amount, serverId]);
+                return usersBetting;
             }
             else {
                 // Server does not exist

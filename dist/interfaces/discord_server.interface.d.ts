@@ -58,5 +58,5 @@ export interface DiscordServer {
     bannerURL: string | null;
 }
 export interface DiscordServerResponse {
-    servers: DiscordServer[];
+    server_data: DiscordServer;
 }

@@ -59,5 +59,5 @@ export interface DiscordServer {
 }
 
 export interface DiscordServerResponse {
-  servers: DiscordServer[];
+  server_data: DiscordServer;
 }

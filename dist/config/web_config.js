@@ -2,9 +2,9 @@
 module.exports = {
     development: {
         apiBaseUrl: "http://localhost:" + process.env.EXPRESS_PORT ||
-            "http://localhost:53134",
+            "http://localhost:4020",
     },
     production: {
-        apiBaseUrl: "https://crypto-discord-bot.onrender.com",
+        apiBaseUrl: "https://crypto-bot-oracleearthium-henrymartinez8.replit.app",
     },
 };

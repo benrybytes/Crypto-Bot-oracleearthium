@@ -14,7 +14,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const baseurl_1 = require("../constants/baseurl");
-const fetchHandler_1 = __importDefault(require("../helpers/fetchHandler"));
+const makeGetRequest_1 = __importDefault(require("../helpers/makeGetRequest"));
+const error_1 = require("./error");
 const url = baseurl_1.baseUrl + "/crypto";
 /*
     Be able to display an embed
@@ -27,15 +28,11 @@ const sendTrackedCryptoData = (interaction) => __awaiter(void 0, void 0, void 0,
     try {
         const serverId = interaction.guildId; // Assuming serverId is the guild ID
         console.log("serverId: ", serverId);
-        const [response, error] = yield (0, fetchHandler_1.default)(url + "/get-crypto?serverId=" + serverId);
-        const trackedCryptoData = yield response.then((res) => res[0].coinData);
+        const { data_response, error } = yield (0, makeGetRequest_1.default)(url + "/get-crypto?serverId=" + serverId);
         if (error != null) {
-            const errorEmbed = new discord_js_1.EmbedBuilder()
-                .setColor("#ed053f")
-                .setTitle("Error")
-                .setDescription(`An error occurred: ${error.message}`);
-            return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            (0, error_1.createErrorEmbed)("Error getting tracked coins");
         }
+        const trackedCryptoData = yield data_response.then((res) => res.coinData);
         if (!trackedCryptoData || trackedCryptoData.length === 0) {
             return interaction.reply("No tracked crypto data available.");
         }
@@ -48,7 +45,7 @@ const sendTrackedCryptoData = (interaction) => __awaiter(void 0, void 0, void 0,
             value: `[More Info Here](${crypto.explorer})`
             //$${parseInt(crypto.priceUsd).toFixed(3)}`,
         })));
-        return interaction.reply({
+        yield interaction.reply({
             embeds: [cryptoListEmbed],
             ephemeral: false,
         });

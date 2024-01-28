@@ -30,11 +30,12 @@ function makePostRequest(url, dataToSend) {
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
+            // Return a created promise for the data found
             const data = yield response.json();
             return { data_response: Promise.resolve(data), error: null };
         }
         catch (error) {
-            console.error("Error making fetch request:", error);
+            console.error("Error making post request:", error);
             return { data_response: null, error: null };
         }
     });

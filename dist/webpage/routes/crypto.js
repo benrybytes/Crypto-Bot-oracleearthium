@@ -15,8 +15,9 @@ const crypto_service = require("../../services/track_crypto_service");
 /* GET programming languages. */
 router.get("/get-crypto", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
+        const { id, serverId, coinData } = yield crypto_service.getSelectedCoins(req.query.serverId);
         try {
-            res.json(yield crypto_service.getSelectedCoins(req.query.serverId));
+            res.status(200).send({ id, serverId, coinData });
         }
         catch (err) {
             console.error(`Error while getting programming languages `, err);

@@ -51,7 +51,7 @@ const displayLeaderboard = (interaction) => __awaiter(void 0, void 0, void 0, fu
             name: `User: ${user.username}`,
             value: `Points: ${user.points}`,
         })));
-        return interaction.reply({
+        yield interaction.reply({
             embeds: [highestEmbed],
             ephemeral: false,
         });

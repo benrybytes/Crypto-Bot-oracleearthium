@@ -64,15 +64,14 @@ const sendUserTopCurrencies = async (interaction: CommandInteraction) => {
     .setColor("#3498db")
     .addFields(
       sortedCryptoData.map((cryptoPrice: IPriceList, index: number) => ({
-        name: `${index + 1}. ${
-          convertPriceStringToNumber[cryptoPrice.key].name
-        } (${convertPriceStringToNumber[cryptoPrice.key].symbol})`,
+        name: `${index + 1}. ${convertPriceStringToNumber[cryptoPrice.key].name
+          } (${convertPriceStringToNumber[cryptoPrice.key].symbol})`,
         value: `Price: $${cryptoPrice.value.toFixed(2)}`, // Use toFixed to limit decimal places
       })),
     );
 
 
-  return interaction.reply({
+  await interaction.reply({
     embeds: [cryptoListEmbed],
     ephemeral: false,
   });

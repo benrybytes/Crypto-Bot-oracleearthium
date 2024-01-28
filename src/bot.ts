@@ -21,8 +21,10 @@ import {
 } from "./services/db";
 import IUser from "./interfaces/users.interface";
 import IUserBetting from "./interfaces/user_betting.interface";
+import { IGuildWithUsers } from "./interfaces/server.interface";
 import makeFetchRequest from "./helpers/fetchHandler";
 import path from "path";
+import add_points_to_users from "./mysql/add_points_to_users";
 const env = process.env.NODE_ENV || "development";
 const config = require(path.join(__dirname, "/config/discord_config"))[env];
 const token = config.discord_token;
@@ -34,179 +36,120 @@ const client: Client = new Client({
     GatewayIntentBits.GuildMembers,
   ],
 });
+
 const users = Users.getInstance();
+
+// Reset all users that are betting after calculating which one's got it correct
+const resetUsersBettingSQL = `
+  UPDATE bet_crypto
+  SET usersBetting = '[]';
+`;
+const getAllUserBettingSQL = `
+  SELECT usersBetting
+  FROM bet_crypto
+  WHERE serverId = ?;
+`;
+const getUsersSQL = `
+  SELECT users 
+  FROM bet_crypto 
+  WHERE serverId = ?;
+`;
+
+const updateUsersInBetCrypto = `
+  UPDATE bet_crypto
+  SET users = ?
+  WHERE serverId = ? 
+`;
+
+
+const addServerSQL = `
+  INSERT INTO bet_crypto (serverId, users, usersBetting)
+  VALUES (?, ?, '[]');
+`;
+
+const checkServerSQL = `
+  SELECT *
+  FROM bet_crypto
+  WHERE serverId = ?;
+`;
+
+
 
 // Servers bot has access to
 let guilds: GuildManager;
-let usersForEachServer: User[][]; // Members of different servers in their respective servers made of users
-// When bot is ready, make global commands |
+
+
 client.once("ready", async () => {
+  Users.setClient(client);
   await createTable();
   await createDiscordDataTable();
+
   console.log("Discord bot is ready! 🤖");
 
   // Get the servers saved in the cache of the discord bot
   guilds = client.guilds;
-  users.setServers(guilds);
-  usersForEachServer = await Promise.all(
-    Users.getServers().map(
-      async (server: Guild) => await users.fetchMembers(server),
-    ),
-  );
 
-  const handleUsersNewInput = async (serverId: string, server: Guild) => {
-    // Check if the server exists in the database
-    const checkServerSQL = `
-    SELECT *
-    FROM bet_crypto
-    WHERE serverId = ?;
-  `;
+  // Resolve the database data into an array of objects
+  const guildWithUsersPromises: Promise<{ guild: Guild; users: IUser[]; }>[] = guilds.cache.map(async (value: Guild) => {
+    const usersFromDB: IUser[] = emptyOrRows(query(getUsersSQL, [value.id]));
+    return {
+      guild: value,
+      users: usersFromDB,
+    };
+  });
 
-    const result = await query(checkServerSQL, [serverId]);
+  // Wait for all asynchronouse data to be resolved 
+  const guildWithUsers: IGuildWithUsers[] = await Promise.all(guildWithUsersPromises);
 
-    // If an array, we know we could move on to compare its elements
-    if (Array.isArray(result) && result.length === 0) {
-      // Server not present, add it
-      const addServerSQL = `
-      INSERT INTO bet_crypto (serverId, users, usersBetting)
-      VALUES (?, ?, '[]');
-    `;
+  // Now be safely added to server data
+  Users.setDataInServerData(guildWithUsers);
 
-      const findUsersInServer: Guild = Users.getServers().find(
-        (e) => e.id == serverId,
-      )!;
-
-      const discordServerUsers:
-        | GuildMemberManager
-        | Collection<string, GuildMember> =
-        await findUsersInServer.members.fetch();
-
-      // Set users data for all servers bot is connected to if no table is found
-      const usersInDiscordServerData: IUser[] = discordServerUsers
-        .map((member: GuildMember) => {
-          if (member.id === client.user?.id) return;
-          return {
-            uid: member.id,
-            username: member.user.username,
-            points: 0,
-          };
-        })
-        .filter((user: IUser | undefined): user is IUser => user !== undefined);
-
-      // Convert serverUsers to a JSON string before inserting
-      const usersJson = JSON.stringify(usersInDiscordServerData);
-
-      await query(addServerSQL, [serverId, usersJson]);
-      console.log(`Server with serverId ${serverId} added.`);
-    }
-  };
-  Users.getServers().map((server: Guild) => {
-    handleUsersNewInput(server.id, server);
+  Users.getServers().map((server: IGuildWithUsers) => {
+    addCurrentUsersInDB(server.guild.id, server.guild);
   });
   await registerCommands({ guildId: "", commands: commandList });
 });
 client.on("guildMemberRemove", async (member) => {
   const serverId = member.guild.id;
-  const memberId = member.id;
+
+  const user: IUser = {
+    points: 0,
+    uid: member.id,
+    username: member.user.username,
+  }
 
   // Delete the specific user from the users array in bet_crypto table
-  const removeBetCryptoUserSQL = `
-    UPDATE bet_crypto
-    SET users = ?
-    WHERE serverId = ? 
-  `;
-
-  const getUsersSQL = `
-    SELECT users
-  FROM bet_crypto
-  WHERE serverId = ?;
-  `;
-
-  const usersResult = emptyOrRows(await query(getUsersSQL, [serverId]));
-
-  const usersJson: IUser[] = usersResult[0].users.filter(
-    (user: IUser) => user.uid !== memberId,
-  );
-
-  const result = emptyOrRows(
-    await query(removeBetCryptoUserSQL, [usersJson, serverId]),
-  );
-
-  console.log("DELTED USER: ", result);
+  removeUserInUsersInDB(serverId, user)
 });
 
 client.on("guildMemberAdd", async (member) => {
-  const serverId = member.guild.id;
-  console.log(`New member joined server with ID: ${serverId}`);
+  const guild: Guild = await client.guilds.fetch(member.guild.id).then((res: Guild) => res);
 
-  const checkServerSQL = `
-    SELECT *
-    FROM bet_crypto
-    WHERE serverId = ?;
-  `;
 
-  const result = await query(checkServerSQL, [serverId]);
-
-  console.log("RESULT: ", result);
-
-  if (Array.isArray(result) && result.length > 0) {
-    // Server present, add the new member to the users array
-    const addUserSQL = `
-      UPDATE bet_crypto
-SET users = JSON_MERGE_PRESERVE(COALESCE(users, '[]'), CAST(? AS JSON))
-WHERE serverId = ?;
-
-    `;
-
-    const newUser: IUser = {
-      uid: member.id,
-      username: member.user.username,
-
-      points: 0,
-    };
-
-    const addUserSQLResult = await query(addUserSQL, [
-      JSON.stringify(newUser),
-      serverId,
-    ]);
-    console.log(addUserSQLResult);
-    console.log(`User with UID ${member.id} added to server ${serverId}.`);
-  } else {
-    // Server not present, add it with the new member
-    const addServerSQL = `
-      INSERT INTO bet_crypto (serverId, users, usersBetting)
-VALUES (?, CAST('[{"uid": ?, "username": ?, "points": 0}]' AS JSON), '[]');
-
-    `;
-
-    await query(addServerSQL, [serverId]);
-    console.log(`Server with serverId ${serverId} added with the new member.`);
+  const user: IUser = {
+    points: 0,
+    uid: member.id,
+    username: member.user.username,
   }
-  // Your existing code...
+  addUserInUsersInDB(guild.id, user)
 });
 client.on("guildCreate", async (guild) => {
   const serverId = guild.id;
 
-  const checkServerSQL = `
-    SELECT *
-    FROM bet_crypto
-    WHERE serverId = ?;
-  `;
+  // Stored in servers.json if bot rejoins server
+  const foundServer: number = Users.getServerIndex(serverId);
 
-  const result = await query(checkServerSQL, [serverId]);
-
-  if (!Array.isArray(result) || result.length === 0) {
-    // Server not present, add it with empty users and usersBetting arrays
-    const addServerSQL = `
-      INSERT INTO bet_crypto (serverId, users, usersBetting)
-      VALUES (?, '[]', '[]');
-    `;
-
-    await query(addServerSQL, [serverId]);
-    console.log(`Server with serverId ${serverId} added.`);
-  } else {
-    console.log(`Server with serverId ${serverId} already exists.`);
+  // New server found for the bot
+  if (foundServer == -1) {
+    Users.addNewServer(guild);
+    addCurrentUsersInDB(serverId, guild);
+    return;
   }
+
+  // Previous server found for the bot
+  addPreviousWithCurrentUsersInDB(serverId, guild, Users.getUsersAtServerId(serverId));;
+
+
 });
 // Any interaction created | Command
 client.on("interactionCreate", async (interaction: Interaction) => {
@@ -222,12 +165,13 @@ client.on("interactionCreate", async (interaction: Interaction) => {
 });
 
 console.log("Bot registration process...");
+createApp(users);
 client.login(token);
 
 let lastExecutionTime: Date;
 
 setInterval(
-  function () {
+  function() {
     const now = new Date();
 
     // Check if 24 hours have passed since the last execution
@@ -248,11 +192,7 @@ const resetLeaderboardAndGivePoints = async () => {
   async function processUserBetting(userBet: IUserBetting, serverId: string) {
     const { uid, symbol, bet_amount, cryptoIncrease, current_price } = userBet;
 
-    const getUsersSQL = `
-  SELECT users 
-  FROM bet_crypto 
-  WHERE serverId = ?;
-`;
+
     const [recentPriceFound, _error] = await makeFetchRequest<any>(
       "https://api.coincap.io/v2/assets?search=" + symbol,
     );
@@ -274,24 +214,13 @@ const resetLeaderboardAndGivePoints = async () => {
       }
     }
 
-    // Convert the array back to a JSON string
-    const updatedUsersJSON = usersArray;
-
-    // Update the users column in the database
-    const updatePointsSQL = `
-  UPDATE bet_crypto
-  SET users = ?
-  WHERE serverId = ?`;
+    Users.setUsersInServerId(serverId, usersArray);
 
     // Execute the query with the necessary parameters
-    await query(updatePointsSQL, [updatedUsersJSON, serverId]);
+    await query(updateUsersInBetCrypto, [usersArray, serverId]);
   }
   async function getAllUserBetting(serverId: string) {
-    const getAllUserBettingSQL = `
-      SELECT usersBetting
-      FROM bet_crypto
-      WHERE serverId = ?;
-    `;
+
     const result = await query(getAllUserBettingSQL, [serverId]);
     const row = emptyOrRows(result);
 
@@ -313,34 +242,104 @@ const resetLeaderboardAndGivePoints = async () => {
   }
 
   async function addPointsToUsers(serverId: string, pointIncrement: number) {
-    const addPointsToUsersSQL = `
-    UPDATE bet_crypto
-SET users = (
-    SELECT JSON_ARRAYAGG(
-        JSON_SET(
-            user,
-            '$.points',
-            JSON_UNQUOTE(JSON_EXTRACT(user, '$.points')) + ?
-        )
-    )
-    FROM JSON_TABLE(users, '$[*]' COLUMNS (
-        user JSON PATH '$'
-    )) AS t
-)
-WHERE serverId = ?;
-`;
-    const result = await query(addPointsToUsersSQL, [pointIncrement, serverId]);
-    const row = emptyOrRows(result);
+    const result = await query(add_points_to_users, [pointIncrement, serverId]);
+    emptyOrRows(result);
   }
 
-  Users.getServers().map((server: Guild) => getAllUserBetting(server.id));
-  Users.getServers().map((server: Guild) => addPointsToUsers(server.id, 50));
-
-  // Reset all users that are betting after calculating which one's got it correct
-  const resetUsersBettingSQL = `
-    UPDATE bet_crypto
-    SET usersBetting = '[]';
-  `;
+  Users.getServers().map((server: IGuildWithUsers) => getAllUserBetting(server.guild.id));
+  Users.getServers().map((server: IGuildWithUsers) => addPointsToUsers(server.guild.id, 50));
 
   await query(resetUsersBettingSQL, []);
 };
+
+const addPreviousWithCurrentUsersInDB = async (serverId: string, guild: Guild, previousUsers: IUser[]) => {
+
+  // Current members
+  const discordServerUsers:
+    | GuildMemberManager
+    | Collection<string, GuildMember> =
+    await guild.members.fetch();
+
+  // Previous members stored
+
+  const newCurrentUsers = discordServerUsers.filter((member: GuildMember) => previousUsers.find((user: IUser) => user.uid === member.id) == undefined);
+
+  // Create the new users
+  const createUsers = newCurrentUsers.map((member: GuildMember) => {
+    return {
+      uid: member.id,
+      username: member.user.username,
+      points: 0,
+    };
+  });
+
+  const addToPreviousMembers = previousUsers.concat(createUsers);
+
+  await emptyOrRows(await query(updateUsersInBetCrypto, [addToPreviousMembers, serverId]))
+}
+
+const addCurrentUsersInDB = async (serverId: string, server: Guild) => {
+  const result = await query(checkServerSQL, [serverId]);
+
+  // If an array, we know we could move on to compare its elements
+  if (Array.isArray(result) && result.length === 0) {
+    addServerMembersToSQL(server)
+  }
+};
+
+const removeUserInUsersInDB = async (serverId: string, user: IUser) => {
+
+  const usersResult = emptyOrRows(await query(getUsersSQL, [serverId]));
+
+  const usersJson: IUser[] = usersResult[0].users.filter(
+    (user_found: IUser) => user_found.uid !== user.uid,
+  );
+
+  Users.setUsersInServerId(serverId, usersJson);
+
+
+  emptyOrRows(
+    await query(updateUsersInBetCrypto, [usersJson, serverId]),
+  );
+
+
+}
+
+// Add one user to the users field in database
+const addUserInUsersInDB = async (serverId: string, user: IUser) => {
+  const user_result: IUser[] = emptyOrRows(await query(getUsersSQL, [serverId]));
+
+  user_result.push(user);
+
+  Users.setUsersInServerId(serverId, user_result);
+
+  await emptyOrRows(await query(updateUsersInBetCrypto, [user_result, serverId]));
+
+}
+
+// Add to new servers only, and not to the ones that already exist
+const addServerMembersToSQL = async (guild: Guild) => {
+  // Server not present, add it
+
+  const discordServerUsers:
+    | GuildMemberManager
+    | Collection<string, GuildMember> =
+    await guild.members.fetch();
+
+  // Create new user list containing data for newly added users 
+  const usersInDiscordServerData: IUser[] = discordServerUsers
+    .map((member: GuildMember) => {
+      if (member.id === client.user?.id) return;
+      return {
+        uid: member.id,
+        username: member.user.username,
+        points: 0,
+      };
+    })
+    .filter((user: IUser | undefined): user is IUser => user !== undefined);
+
+  await query(addServerSQL, [guild.id, usersInDiscordServerData]);
+  console.log(`Server with serverId ${guild.id} added.`);
+}
+
+
